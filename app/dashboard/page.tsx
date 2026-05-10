@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Suspense, useState } from "react";
 import { useFileMultiSelect } from "@/app/use-file-multi-select";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Folder, FolderInput, FolderPlus, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Folder, FolderInput, FolderPlus, MoreVertical, Pencil, Share2, Trash2 } from "lucide-react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 
@@ -544,28 +544,134 @@ function FolderActionsMenu({
   onRename: (folder: FolderDocument) => void;
   onDelete: (folder: FolderDocument) => void;
 }) {
+  const createFolderShareLink = useMutation(api.files.createFolderShareLink);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareExpiresInDays, setShareExpiresInDays] = useState(7);
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareExpiresAt, setShareExpiresAt] = useState<number | null>(null);
+  const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
+  const shareExpiryOptions = [1, 7, 14, 30];
+
+  const copyText = async (text: string) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textArea);
+  };
+
+  const handleCreateShareLink = async () => {
+    try {
+      setIsCreatingShareLink(true);
+      const share = await createFolderShareLink({ id: folder._id, expiresInDays: shareExpiresInDays });
+      const url = `${window.location.origin}/share/${share.shareId}`;
+      setShareUrl(url);
+      setShareExpiresAt(share.expiresAt);
+      await copyText(url);
+      toast.success("Folder share link created and copied");
+    } catch (error) {
+      toast.error("Failed to create folder share link", {
+        description: error instanceof Error ? error.message : "Something went wrong",
+      });
+    } finally {
+      setIsCreatingShareLink(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) {
+      toast.error("No share link available for this folder");
+      return;
+    }
+
+    try {
+      await copyText(shareUrl);
+      toast.success("Share link copied");
+    } catch {
+      toast.error("Failed to copy share link");
+    }
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="rounded p-0.5 text-gray-400 hover:text-gray-700"
-          aria-label={`Actions for ${folder.name}`}
-        >
-          <MoreVertical className="size-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onRename(folder)}>
-          <Pencil className="size-4" />
-          Rename
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer gap-2 text-red-500 focus:text-red-500" onClick={() => onDelete(folder)}>
-          <Trash2 className="size-4" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+            aria-label={`Actions for ${folder.name}`}
+          >
+            <MoreVertical className="size-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setShareDialogOpen(true)}>
+            <Share2 className="size-4" />
+            Share link
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onRename(folder)}>
+            <Pencil className="size-4" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer gap-2 text-red-500 focus:text-red-500" onClick={() => onDelete(folder)}>
+            <Trash2 className="size-4" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share folder</DialogTitle>
+            <DialogDescription>
+              Create a link that expires automatically after the selected number of days.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-4 gap-2">
+              {shareExpiryOptions.map((days) => (
+                <Button
+                  key={days}
+                  type="button"
+                  variant={shareExpiresInDays === days ? "default" : "outline"}
+                  onClick={() => setShareExpiresInDays(days)}
+                >
+                  {days}d
+                </Button>
+              ))}
+            </div>
+            <Button type="button" onClick={handleCreateShareLink} disabled={isCreatingShareLink}>
+              {isCreatingShareLink ? "Creating..." : "Create share link"}
+            </Button>
+            {shareUrl && (
+              <div className="grid gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Input value={shareUrl} readOnly onFocus={(event) => event.target.select()} />
+                  <Button type="button" onClick={handleCopyShareLink}>
+                    Copy
+                  </Button>
+                </div>
+                {shareExpiresAt && (
+                  <p className="text-xs text-gray-500">
+                    Expires {new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(shareExpiresAt))}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

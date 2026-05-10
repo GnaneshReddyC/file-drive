@@ -608,6 +608,39 @@ export const createShareLink = mutation({
   },
 });
 
+export const createFolderShareLink = mutation({
+  args: {
+    id: v.id("folders"),
+    expiresInDays: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const folder = await ctx.db.get(args.id);
+    if (!folder || folder.isDeleted) throw new Error("Folder not found");
+
+    if (!canReadFolder(identity, folder)) {
+      throw new Error("You do not have permission to share this folder");
+    }
+
+    const expiresInDays = Math.min(Math.max(Math.floor(args.expiresInDays), 1), 30);
+    const shareId = crypto.randomUUID();
+    const now = Date.now();
+    const expiresAt = now + expiresInDays * 24 * 60 * 60 * 1000;
+
+    await ctx.db.insert("folderShares", {
+      folderId: args.id,
+      shareId,
+      createdBy: identity.subject,
+      createdAt: now,
+      expiresAt,
+    });
+
+    return { shareId, expiresAt };
+  },
+});
+
 export const getSharedFile = query({
   args: { shareId: v.string() },
   handler: async (ctx, args) => {
@@ -629,6 +662,82 @@ export const getSharedFile = query({
       size: file.size,
       url: file.fileId ? await ctx.storage.getUrl(file.fileId) : file.url,
       expiresAt: share.expiresAt,
+    };
+  },
+});
+
+export const getSharedItem = query({
+  args: { shareId: v.string() },
+  handler: async (ctx, args) => {
+    const fileShare = await ctx.db
+      .query("fileShares")
+      .withIndex("by_shareId", (q) => q.eq("shareId", args.shareId))
+      .first();
+
+    if (fileShare) {
+      if (fileShare.expiresAt < Date.now()) return { expired: true as const };
+
+      const file = await ctx.db.get(fileShare.fileId);
+      if (!file || file.isDeleted) return null;
+
+      return {
+        expired: false as const,
+        kind: "file" as const,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: file.fileId ? await ctx.storage.getUrl(file.fileId) : file.url,
+        expiresAt: fileShare.expiresAt,
+      };
+    }
+
+    const folderShare = await ctx.db
+      .query("folderShares")
+      .withIndex("by_shareId", (q) => q.eq("shareId", args.shareId))
+      .first();
+
+    if (!folderShare) return null;
+    if (folderShare.expiresAt < Date.now()) return { expired: true as const };
+
+    const folder = await ctx.db.get(folderShare.folderId);
+    if (!folder || folder.isDeleted) return null;
+
+    const files = await ctx.db
+      .query("files")
+      .withIndex("by_orgId", (q) => q.eq("orgId", folder.orgId))
+      .filter((q) => q.eq(q.field("isDeleted"), false))
+      .collect();
+    const folders = await ctx.db
+      .query("folders")
+      .withIndex("by_parentId", (q) => q.eq("parentId", folder._id))
+      .filter((q) => q.eq(q.field("isDeleted"), false))
+      .collect();
+
+    const sharedFiles = await Promise.all(
+      files
+        .filter((file) => (file.folderId ?? null) === folder._id)
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+        .map(async (file) => ({
+          id: file._id,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          url: file.fileId ? await ctx.storage.getUrl(file.fileId) : file.url,
+        }))
+    );
+
+    return {
+      expired: false as const,
+      kind: "folder" as const,
+      name: folder.name,
+      expiresAt: folderShare.expiresAt,
+      folders: folders
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+        .map((childFolder) => ({
+          id: childFolder._id,
+          name: childFolder.name,
+        })),
+      files: sharedFiles,
     };
   },
 });

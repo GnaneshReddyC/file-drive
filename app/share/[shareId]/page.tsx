@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { FileIcon } from "lucide-react";
+import { Download, FileIcon, Folder } from "lucide-react";
 
 function formatFileSize(size: number) {
   if (!size) return "0 B";
@@ -24,37 +24,98 @@ function formatExpiry(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
-export default function SharedFilePage() {
+export default function SharedItemPage() {
   const params = useParams<{ shareId: string }>();
-  const sharedFile = useQuery(api.files.getSharedFile, { shareId: params.shareId });
+  const sharedItem = useQuery(api.files.getSharedItem, { shareId: params.shareId });
 
-  if (sharedFile === undefined) {
+  if (sharedItem === undefined) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-6">
-        <p className="text-sm text-gray-500">Loading shared file...</p>
+        <p className="text-sm text-gray-500">Loading shared item...</p>
       </div>
     );
   }
 
-  if (!sharedFile) {
+  if (!sharedItem) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-6">
         <div className="max-w-md text-center">
           <FileIcon className="mx-auto mb-4 size-12 text-gray-400" />
           <h1 className="mb-2 text-2xl font-semibold text-slate-950">Link not found</h1>
-          <p className="text-sm text-gray-500">This share link does not exist or the file was removed.</p>
+          <p className="text-sm text-gray-500">This share link does not exist or the item was removed.</p>
         </div>
       </div>
     );
   }
 
-  if (sharedFile.expired) {
+  if (sharedItem.expired) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-6">
         <div className="max-w-md text-center">
           <FileIcon className="mx-auto mb-4 size-12 text-gray-400" />
           <h1 className="mb-2 text-2xl font-semibold text-slate-950">Link expired</h1>
-          <p className="text-sm text-gray-500">Ask the file owner to create a new share link.</p>
+          <p className="text-sm text-gray-500">Ask the owner to create a new share link.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (sharedItem.kind === "folder") {
+    const itemCount = sharedItem.files.length + sharedItem.folders.length;
+
+    return (
+      <div className="min-h-[70vh] px-6 py-10">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-lg bg-slate-900 text-white">
+              <Folder className="size-7" />
+            </div>
+            <h1 className="mb-2 truncate text-2xl font-semibold text-slate-950" title={sharedItem.name}>
+              {sharedItem.name}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {itemCount} item{itemCount === 1 ? "" : "s"} - Expires {formatExpiry(sharedItem.expiresAt)}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {sharedItem.folders.map((folder) => (
+              <div key={folder.id} className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-amber-500 text-white">
+                  <Folder className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-950" title={folder.name}>
+                    {folder.name}
+                  </p>
+                  <p className="text-xs text-gray-500">Folder</p>
+                </div>
+              </div>
+            ))}
+            {sharedItem.files.map((file) => (
+              <div key={file.id} className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-slate-900 text-white">
+                  <FileIcon className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-950" title={file.name}>
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                </div>
+                <Button asChild size="sm" variant="outline" className="shrink-0">
+                  <a href={file.url ?? "#"} target="_blank" rel="noreferrer" aria-label={`Open ${file.name}`}>
+                    <Download className="size-4" />
+                  </a>
+                </Button>
+              </div>
+            ))}
+            {itemCount === 0 && (
+              <div className="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
+                This shared folder is empty.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -66,14 +127,14 @@ export default function SharedFilePage() {
         <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-lg bg-slate-900 text-white">
           <FileIcon className="size-7" />
         </div>
-        <h1 className="mb-2 truncate text-2xl font-semibold text-slate-950" title={sharedFile.name}>
-          {sharedFile.name}
+        <h1 className="mb-2 truncate text-2xl font-semibold text-slate-950" title={sharedItem.name}>
+          {sharedItem.name}
         </h1>
         <p className="mb-6 text-sm text-gray-500">
-          {formatFileSize(sharedFile.size)} · Expires {formatExpiry(sharedFile.expiresAt)}
+          {formatFileSize(sharedItem.size)} - Expires {formatExpiry(sharedItem.expiresAt)}
         </p>
         <Button asChild className="w-full">
-          <a href={sharedFile.url ?? "#"} target="_blank" rel="noreferrer">
+          <a href={sharedItem.url ?? "#"} target="_blank" rel="noreferrer">
             Open file
           </a>
         </Button>

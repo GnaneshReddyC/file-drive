@@ -45,4 +45,13 @@ export default defineSchema({
     expiresAt: v.number(),
   }).index("by_shareId", ["shareId"])
     .index("by_fileId", ["fileId"]),
+
+  folderShares: defineTable({
+    folderId: v.id("folders"),
+    shareId: v.string(),
+    createdBy: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_shareId", ["shareId"])
+    .index("by_folderId", ["folderId"]),
 });
