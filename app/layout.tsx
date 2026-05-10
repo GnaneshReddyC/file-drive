@@ -7,7 +7,7 @@ import { AuthSideNav } from '@/components/auth-side-nav'
 import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
-  title: 'File Drive',
+  title: 'NextDrive',
   description: 'A clean workspace for storing, previewing, and organizing files.',
 }
 

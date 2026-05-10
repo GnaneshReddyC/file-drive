@@ -18,10 +18,20 @@ export default defineSchema({
     fileType: v.optional(v.string()),
     size: v.number(),
     isFavorite: v.boolean(),
+    isPinned: v.optional(v.boolean()),
     isDeleted: v.boolean(),
     deletedAt: v.optional(v.number()),
   }).index("by_orgId", ["orgId"])
     .index("by_fileId", ["fileId"])
     .index("by_fileType", ["fileType"])
     .index("by_isDeleted", ["isDeleted"]),
+
+  fileShares: defineTable({
+    fileId: v.id("files"),
+    shareId: v.string(),
+    createdBy: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  }).index("by_shareId", ["shareId"])
+    .index("by_fileId", ["fileId"]),
 });

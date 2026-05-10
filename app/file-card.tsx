@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { CheckSquare, FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, Trash2, Download, Star, Pencil, Square } from "lucide-react";
+import { CheckSquare, FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, Trash2, Download, Star, Pencil, Square, Pin, PinOff, Share2 } from "lucide-react";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { FilePreviewModal } from "@/components/file-preview-modal";
@@ -114,16 +114,27 @@ function formatFileDate(timestamp: number) {
 function FileDropdownMenu({ file }: { file: FileDocument }) {
   const deleteFile = useMutation(api.files.deleteFile);
   const renameFile = useMutation(api.files.renameFile);
+  const togglePin = useMutation(api.files.togglePin);
+  const createShareLink = useMutation(api.files.createShareLink);
   const { membership, organization } = useOrganization();
   const orgId = organization?.id || "";
   const canDelete = !orgId || membership?.role === "org:admin";
   const canRename = !orgId || membership?.role === "org:admin";
+  const canPin = !orgId || membership?.role === "org:admin";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<Id<"files"> | null>(null);
   const [newFileName, setNewFileName] = useState(file.name);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isPinning, setIsPinning] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareExpiresInDays, setShareExpiresInDays] = useState(7);
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareExpiresAt, setShareExpiresAt] = useState<number | null>(null);
+  const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
   const fileId = file._id as Id<"files">;
+  const isPinned = Boolean(file.isPinned);
+  const shareExpiryOptions = [1, 7, 14, 30];
 
   const handleDeleteClick = (id: Id<"files">) => {
     setFileToDelete(id);
@@ -186,6 +197,71 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
     }
   };
 
+  const handleTogglePin = async () => {
+    try {
+      setIsPinning(true);
+      const newState = await togglePin({ id: fileId });
+      toast.success(newState ? "File pinned" : "File unpinned");
+    } catch (error) {
+      const message = getToastErrorMessage(error);
+      toast.error("Failed to update pin", {
+        description: message,
+      });
+    } finally {
+      setIsPinning(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) {
+      toast.error("No share link available for this file");
+      return;
+    }
+
+    try {
+      await copyText(shareUrl);
+      toast.success("Share link copied");
+    } catch {
+      toast.error("Failed to copy share link");
+    }
+  };
+
+  const handleCreateShareLink = async () => {
+    try {
+      setIsCreatingShareLink(true);
+      const share = await createShareLink({ id: fileId, expiresInDays: shareExpiresInDays });
+      const url = `${window.location.origin}/share/${share.shareId}`;
+      setShareUrl(url);
+      setShareExpiresAt(share.expiresAt);
+      await copyText(url);
+      toast.success("Share link created and copied");
+    } catch (error) {
+      const message = getToastErrorMessage(error);
+      toast.error("Failed to create share link", {
+        description: message,
+      });
+    } finally {
+      setIsCreatingShareLink(false);
+    }
+  };
+
+  const copyText = async (text: string) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textArea);
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -202,6 +278,23 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
             <Download className="w-4 h-4" />
             Download
           </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer flex items-center gap-2"
+            onClick={() => setShareDialogOpen(true)}
+          >
+            <Share2 className="w-4 h-4" />
+            Share link
+          </DropdownMenuItem>
+          {canPin && (
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2"
+              onClick={handleTogglePin}
+              disabled={isPinning}
+            >
+              {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+              {isPinned ? "Unpin" : "Pin"}
+            </DropdownMenuItem>
+          )}
           {canRename && (
             <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2"
@@ -250,6 +343,49 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share link</DialogTitle>
+            <DialogDescription>
+              Create a link that expires automatically after the selected number of days.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-4 gap-2">
+              {shareExpiryOptions.map((days) => (
+                <Button
+                  key={days}
+                  type="button"
+                  variant={shareExpiresInDays === days ? "default" : "outline"}
+                  onClick={() => setShareExpiresInDays(days)}
+                >
+                  {days}d
+                </Button>
+              ))}
+            </div>
+            <Button type="button" onClick={handleCreateShareLink} disabled={isCreatingShareLink}>
+              {isCreatingShareLink ? "Creating..." : "Create share link"}
+            </Button>
+            {shareUrl && (
+              <div className="grid gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Input value={shareUrl} readOnly onFocus={(event) => event.target.select()} />
+                  <Button type="button" onClick={handleCopyShareLink}>
+                    Copy
+                  </Button>
+                </div>
+                {shareExpiresAt && (
+                  <p className="text-xs text-gray-500">
+                    Expires {formatFileDate(shareExpiresAt)}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -327,6 +463,11 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
         <div className={`h-1 w-full bg-gradient-to-r ${getFileColor(file.type, file.name)}`} />
         <div className={`flex items-center justify-center h-24 bg-gradient-to-br ${getFileColor(file.type, file.name)} opacity-90 relative`}>
           <div className="text-white">{getFileIcon(file.type, file.name)}</div>
+          {file.isPinned && (
+            <div className="absolute left-2 top-2 z-10 rounded-md bg-white/90 p-1.5 text-slate-700 shadow-sm backdrop-blur-sm">
+              <Pin className="w-4 h-4 fill-slate-700" />
+            </div>
+          )}
           <button
             onClick={handleToggleFavorite}
             className="absolute right-2 top-2 z-10 rounded-md bg-white/90 p-1.5 text-slate-500 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-yellow-500"
@@ -339,8 +480,8 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
             <p className="text-gray-800 text-xs font-medium truncate" title={file.name}>
               {file.name}
             </p>
-            <p className="mt-1 font-mono text-[10px] uppercase text-slate-400">
-              {getFileTypeLabel(file)}
+            <p className="mt-1 text-[11px] text-slate-400">
+              {formatFileSize(file.size)} · {formatFileDate(file._creationTime)}
             </p>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
@@ -403,9 +544,12 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
             {getFileIcon(file.type, file.name)}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-gray-900 dark:text-white" title={file.name}>
-              {file.name}
-            </p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              {file.isPinned && <Pin className="size-3.5 shrink-0 fill-slate-500 text-slate-500" />}
+              <p className="truncate text-sm font-medium text-gray-900 dark:text-white" title={file.name}>
+                {file.name}
+              </p>
+            </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">{getFileTypeLabel(file)}</p>
           </div>
         </div>

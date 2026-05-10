@@ -9,7 +9,8 @@ import { UploadButton } from "@/app/upload-button";
 import { FileCard } from "@/app/file-card";
 import { SearchComponent } from "@/app/search-component";
 import { EmptySketch } from "@/app/empty-sketch";
-import { CloudUpload, Sparkles } from "lucide-react";
+import { FileDriveLogo } from "@/app/file-drive-logo";
+import { Sparkles } from "lucide-react";
 import { useState } from "react";
 
 function EmptyState({ orgId }: { orgId: string }) {
@@ -103,11 +104,16 @@ export default function Home() {
   <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
     <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white px-8 py-10 text-center shadow-sm">
       <div className="mb-6">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-          <CloudUpload className="h-8 w-8" />
+        <div className="flex justify-center">
+          <FileDriveLogo size="lg" />
         </div>
       </div>
-      <h1 className="mb-2 text-4xl font-extrabold tracking-tight text-slate-950">File Drive</h1>
+      <h1 className="mb-2 text-4xl font-black tracking-tight">
+        <span className="text-slate-950">Next</span>
+        <span className="bg-gradient-to-r from-cyan-600 to-emerald-500 bg-clip-text text-transparent">
+          Drive
+        </span>
+      </h1>
       <p className="text-gray-500 mb-8">Store and share your files securely</p>
       <SignInButton mode="modal">
         <Button className="primary-action w-full px-6 py-5 text-lg">

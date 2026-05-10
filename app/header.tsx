@@ -4,7 +4,8 @@ import { OrganizationSwitcher, SignOutButton, UserButton, useAuth, useOrganizati
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DriveAiChatDialog } from "@/components/drive-ai-chat-dialog";
-import { Bot, Building2, HardDrive } from "lucide-react";
+import { FileDriveLogo } from "@/app/file-drive-logo";
+import { Bot, Building2 } from "lucide-react";
 import { useState } from "react";
 
 export default function Header() {
@@ -18,11 +19,14 @@ export default function Header() {
     <>
       <div className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-800">
-            <HardDrive className="size-5" />
-          </div>
+          <FileDriveLogo />
           <div>
-            <h1 className="text-base font-extrabold tracking-tight text-slate-950">File Drive</h1>
+            <h1 className="text-lg font-black tracking-tight">
+              <span className="text-slate-950">Next</span>
+              <span className="bg-gradient-to-r from-cyan-600 to-emerald-500 bg-clip-text text-transparent">
+                Drive
+              </span>
+            </h1>
           </div>
         </div>
         {isSignedIn && (

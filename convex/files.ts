@@ -174,6 +174,7 @@ export const createFile = mutation({
       url: args.url,
       size: args.size,
       isFavorite: false,
+      isPinned: false,
       isDeleted: false,
     });
 
@@ -190,18 +191,20 @@ export const getFiles = query({
     if (args.orgId) {
       if (!isOrgMember(identity, args.orgId)) return [];
 
-      return await ctx.db
+      const files = await ctx.db
         .query("files")
         .filter((q) => q.eq(q.field("orgId"), args.orgId))
         .filter((q) => q.eq(q.field("isDeleted"), false))
         .collect();
+      return sortPinnedFirst(files);
     } else {
-      return await ctx.db
+      const files = await ctx.db
         .query("files")
         .filter((q) => q.eq(q.field("userId"), identity.subject))
         .filter((q) => q.eq(q.field("orgId"), ""))
         .filter((q) => q.eq(q.field("isDeleted"), false))
         .collect();
+      return sortPinnedFirst(files);
     }
   },
 });
@@ -253,6 +256,64 @@ export const getFileUrl = query({
     if (!file || !canReadFile(identity, file)) return null;
 
     return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
+export const createShareLink = mutation({
+  args: {
+    id: v.id("files"),
+    expiresInDays: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const file = await ctx.db.get(args.id);
+    if (!file) throw new Error("File not found");
+
+    if (!canReadFile(identity, file)) {
+      throw new Error("You do not have permission to share this file");
+    }
+
+    const expiresInDays = Math.min(Math.max(Math.floor(args.expiresInDays), 1), 30);
+    const shareId = crypto.randomUUID();
+    const now = Date.now();
+    const expiresAt = now + expiresInDays * 24 * 60 * 60 * 1000;
+
+    await ctx.db.insert("fileShares", {
+      fileId: args.id,
+      shareId,
+      createdBy: identity.subject,
+      createdAt: now,
+      expiresAt,
+    });
+
+    return { shareId, expiresAt };
+  },
+});
+
+export const getSharedFile = query({
+  args: { shareId: v.string() },
+  handler: async (ctx, args) => {
+    const share = await ctx.db
+      .query("fileShares")
+      .withIndex("by_shareId", (q) => q.eq("shareId", args.shareId))
+      .first();
+
+    if (!share) return null;
+    if (share.expiresAt < Date.now()) return { expired: true as const };
+
+    const file = await ctx.db.get(share.fileId);
+    if (!file || file.isDeleted) return null;
+
+    return {
+      expired: false as const,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: file.fileId ? await ctx.storage.getUrl(file.fileId) : file.url,
+      expiresAt: share.expiresAt,
+    };
   },
 });
 export const restoreFile = mutation({
@@ -416,3 +477,31 @@ export const toggleFavorite = mutation({
     return !file.isFavorite;
   },
 });
+
+export const togglePin = mutation({
+  args: { id: v.id("files") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const file = await ctx.db.get(args.id);
+    if (!file) throw new Error("File not found");
+
+    if (!canManageFile(identity, file)) {
+      throw new Error("You do not have permission to update this file");
+    }
+
+    const isPinned = !Boolean(file.isPinned);
+    await ctx.db.patch(args.id, { isPinned });
+
+    return isPinned;
+  },
+});
+
+function sortPinnedFirst<T extends { isPinned?: boolean; _creationTime: number }>(files: T[]) {
+  return files.sort((a, b) => {
+    const pinDiff = Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned));
+    if (pinDiff !== 0) return pinDiff;
+    return b._creationTime - a._creationTime;
+  });
+}

@@ -13,6 +13,16 @@ import { EmptySketch } from "@/app/empty-sketch";
 import { useState } from "react";
 import { useFileMultiSelect } from "@/app/use-file-multi-select";
 
+function formatFileSize(size: number) {
+  if (!size) return "0 B";
+
+  const units = ["B", "KB", "MB", "GB"];
+  const unitIndex = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
+  const value = size / 1024 ** unitIndex;
+
+  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
 function EmptyState({ orgId }: { orgId: string }) {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
@@ -60,6 +70,9 @@ export default function Dashboard() {
     if (searchQuery && !file.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+  const totalSize = files?.reduce((sum, file) => sum + file.size, 0) ?? 0;
+  const favoriteCount = files?.filter((file) => file.isFavorite).length ?? 0;
+  const pinnedCount = files?.filter((file) => file.isPinned).length ?? 0;
 
   if (isLoading) {
     return (
@@ -85,8 +98,8 @@ export default function Dashboard() {
   return (
     <div className="workspace-page">
       <div className="workspace-container">
-        <div className="mb-6 border-b border-slate-200 pb-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-5 border-b border-slate-200 pb-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="workspace-kicker mb-2">
               {organization?.name ?? "Personal"} / {filteredFiles?.length || 0} files
@@ -95,8 +108,22 @@ export default function Dashboard() {
               Your Files
             </h1>
             <p className="workspace-subtitle mt-2">Upload, preview, organize, and ask AI about your files.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                {files?.length ?? 0} files
+              </span>
+              <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                {formatFileSize(totalSize)} used
+              </span>
+              <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                {favoriteCount} favorites
+              </span>
+              <span className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 shadow-sm">
+                {pinnedCount} pinned
+              </span>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white/80 p-2 shadow-sm backdrop-blur-sm">
             <SearchComponent 
               onSearch={setSearchQuery}
               searchQuery={searchQuery}
