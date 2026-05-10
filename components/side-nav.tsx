@@ -43,8 +43,8 @@ export function SideNav() {
         variant={isActive ? "default" : "ghost"}
         onClick={() => router.push(item.href)}
         className={cn(
-          "w-full justify-start gap-3 px-3",
-          isActive && "bg-gradient-to-r from-gray-900 to-gray-800 text-white hover:bg-gray-800"
+          "h-10 w-full justify-start gap-3 rounded-lg px-3 text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+          isActive && "bg-slate-900 text-white shadow-sm hover:bg-slate-900 hover:text-white"
         )}
       >
         <Icon className="h-5 w-5" />
@@ -57,16 +57,14 @@ export function SideNav() {
     <>
       <div
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-40 flex flex-col",
-          "shadow-xl",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 z-40 flex flex-col",
           "w-64"
         )}
       >
-        <div className="h-16 flex items-center border-b border-gray-200 px-6">
-          <div className="w-1 h-1" />
+        <div className="h-4 border-b border-slate-200">
         </div>
 
-        <div className="flex-1 px-3 space-y-1 overflow-y-auto">
+        <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return <NavButton key={item.name} item={item} isActive={isActive} />;

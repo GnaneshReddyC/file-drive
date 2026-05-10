@@ -3,12 +3,20 @@
 import { useOrganization } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { FileCard } from "@/app/file-card";
+import { FileCard, FileListItem } from "@/app/file-card";
+import { FileViewMode, FileViewToggle } from "@/app/file-view-toggle";
+import { DeleteSelectedButton } from "@/app/delete-selected-button";
+import { MultiSelectToggle } from "@/app/multi-select-toggle";
+import { useFileMultiSelect } from "@/app/use-file-multi-select";
+import { EmptySketch } from "@/app/empty-sketch";
 import { File } from "lucide-react";
+import { useState } from "react";
 
 export default function PdfsPage() {
   const { organization } = useOrganization();
   const orgId = organization?.id || "";
+  const [viewMode, setViewMode] = useState<FileViewMode>("grid");
+  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, deleteSelectedFiles } = useFileMultiSelect();
   const files = useQuery(api.files.getFiles, { orgId });
 
   const pdfFiles = files?.filter((file) => {
@@ -18,7 +26,7 @@ export default function PdfsPage() {
 
   if (files === undefined) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="workspace-container">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="rounded-2xl overflow-hidden border border-gray-200 bg-white animate-pulse">
@@ -35,29 +43,57 @@ export default function PdfsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <File className="w-5 h-5 text-red-500" />
-            <p className="text-xs font-medium tracking-[0.3em] text-gray-400 uppercase">
-              {organization?.name ?? "Personal"} · {pdfFiles?.length || 0} PDFs
-            </p>
+    <div className="workspace-page">
+      <div className="workspace-container">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <File className="w-5 h-5 text-red-500" />
+              <p className="workspace-kicker">
+                {organization?.name ?? "Personal"} / {pdfFiles?.length || 0} PDFs
+              </p>
+            </div>
+            <h1 className="workspace-title">
+              PDFs
+            </h1>
           </div>
-          <h1 style={{ fontFamily: "'Playfair Display', serif" }} className="text-3xl font-bold text-gray-900">
-            PDFs
-          </h1>
+          {(pdfFiles?.length || 0) > 0 && (
+            <div className="flex items-center gap-3">
+              <FileViewToggle value={viewMode} onChange={setViewMode} />
+              <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+              {selectedIds.size > 0 && <DeleteSelectedButton onClick={deleteSelectedFiles} />}
+            </div>
+          )}
         </div>
 
         {pdfFiles?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <File className="w-16 h-16 text-gray-300 mb-4" />
-            <p className="text-gray-400 text-sm">No PDFs found</p>
+          <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+            <EmptySketch />
+            <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">No PDFs found</h2>
+            <p className="text-gray-500 text-lg">PDF files will appear here.</p>
           </div>
-        ) : (
+        ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {pdfFiles?.map((file) => (
-              <FileCard key={file._id} file={file} />
+              <FileCard
+                key={file._id}
+                file={file}
+                isSelecting={isSelecting}
+                isSelected={selectedIds.has(file._id)}
+                onSelectionChange={(selectedFile) => toggleSelectedFile(selectedFile._id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {pdfFiles?.map((file) => (
+              <FileListItem
+                key={file._id}
+                file={file}
+                isSelecting={isSelecting}
+                isSelected={selectedIds.has(file._id)}
+                onSelectionChange={(selectedFile) => toggleSelectedFile(selectedFile._id)}
+              />
             ))}
           </div>
         )}

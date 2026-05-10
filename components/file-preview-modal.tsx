@@ -3,22 +3,26 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { FileIcon } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Doc } from "@/convex/_generated/dataModel";
+import Image from "next/image";
+
+type FileDocument = Doc<"files">;
 
 interface FilePreviewModalProps {
-  file: any;
+  file: FileDocument | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-function getFileType(file: any) {
-  const ext = file.name?.split(".").pop()?.toLowerCase();
+function getFileType(file: FileDocument) {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   if (file.type?.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext)) return "image";
   if (file.type?.startsWith("video/") || ["mp4", "mov", "avi", "mkv", "webm"].includes(ext)) return "video";
   if (file.type?.startsWith("audio/") || ["mp3", "wav", "flac", "aac", "ogg"].includes(ext)) return "audio";
@@ -28,19 +32,12 @@ function getFileType(file: any) {
 }
 
 export function FilePreviewModal({ file, open, onOpenChange }: FilePreviewModalProps) {
-  const [fileUrl, setFileUrl] = useState<string | null>(null);
   const fetchedUrl = useQuery(api.files.getFileUrl, file?.fileId ? { storageId: file.fileId } : "skip");
   const fileType = file ? getFileType(file) : "other";
 
-  useEffect(() => {
-    if (fetchedUrl) {
-      setFileUrl(fetchedUrl);
-    } else if (file?.url) {
-      setFileUrl(file.url);
-    }
-  }, [fetchedUrl, file]);
-
   if (!file) return null;
+
+  const fileUrl = fetchedUrl || file.url || null;
 
   const renderPreview = () => {
     if (!fileUrl) {
@@ -54,8 +51,8 @@ export function FilePreviewModal({ file, open, onOpenChange }: FilePreviewModalP
     switch (fileType) {
       case "image":
         return (
-          <div className="flex items-center justify-center max-h-[70vh] overflow-auto">
-            <img src={fileUrl} alt={file.name} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
+          <div className="relative h-[70vh] w-full">
+            <Image src={fileUrl} alt={file.name} fill unoptimized className="object-contain rounded-lg" />
           </div>
         );
       case "video":
@@ -108,6 +105,9 @@ export function FilePreviewModal({ file, open, onOpenChange }: FilePreviewModalP
               {(file.size / 1024 / 1024).toFixed(2)} MB
             </span>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Preview and download options for {file.name}.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-auto">
           {renderPreview()}

@@ -8,20 +8,17 @@ import { api } from "../convex/_generated/api";
 import { UploadButton } from "@/app/upload-button";
 import { FileCard } from "@/app/file-card";
 import { SearchComponent } from "@/app/search-component";
+import { EmptySketch } from "@/app/empty-sketch";
 import { CloudUpload, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 function EmptyState({ orgId }: { orgId: string }) {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center px-6">
-      <div className="text-center max-w-2xl mx-auto">
-        <div className="relative inline-block mb-8">
-          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-full p-8 border border-gray-200">
-            <CloudUpload className="w-16 h-16 text-gray-400" />
-          </div>
-        </div>
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
+      <div className="empty-state mx-auto max-w-2xl px-10 py-14 text-center">
+        <EmptySketch />
         
-        <h2 className="text-4xl font-bold text-gray-900 mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">
           No files yet
         </h2>
         
@@ -62,17 +59,18 @@ function FilesList() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="mb-8">
-          <div className="flex items-end justify-between mb-6">
+    <div className="workspace-page">
+      <div className="workspace-container">
+        <div className="mb-6 border-b border-slate-200 pb-5">
+          <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-medium tracking-[0.3em] text-gray-400 uppercase mb-2">
-                {organization?.name ?? "Personal"} · {filteredFiles?.length ?? 0} files
+              <p className="workspace-kicker mb-2">
+                {organization?.name ?? "Personal"} / {filteredFiles?.length ?? 0} files
               </p>
-              <h1 style={{ fontFamily: "'Playfair Display', serif" }} className="text-3xl font-bold text-gray-900 leading-none">
+              <h1 className="workspace-title">
                 Your Files
               </h1>
+              <p className="workspace-subtitle mt-2">A focused workspace for your uploaded files.</p>
             </div>
             <div className="flex items-center gap-3">
               <SearchComponent 
@@ -102,15 +100,17 @@ export default function Home() {
         <FilesList />
       </Authenticated>
       <Unauthenticated>
-  <div className="fixed inset-0 flex items-center justify-center bg-gray-50">
-    <div className="text-center max-w-md w-full px-4">
+  <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
+    <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white px-8 py-10 text-center shadow-sm">
       <div className="mb-6">
-        <CloudUpload className="w-16 h-16 text-gray-700 mx-auto" />
+        <div className="mx-auto flex size-16 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+          <CloudUpload className="h-8 w-8" />
+        </div>
       </div>
-      <h1 className="text-4xl font-bold text-gray-900 mb-2">File Drive</h1>
+      <h1 className="mb-2 text-4xl font-extrabold tracking-tight text-slate-950">File Drive</h1>
       <p className="text-gray-500 mb-8">Store and share your files securely</p>
       <SignInButton mode="modal">
-        <Button className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-5 text-lg rounded-xl w-full">
+        <Button className="primary-action w-full px-6 py-5 text-lg">
           Sign In to Continue
         </Button>
       </SignInButton>

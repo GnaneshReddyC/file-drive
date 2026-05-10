@@ -21,6 +21,7 @@ export default defineSchema({
     isDeleted: v.boolean(),
     deletedAt: v.optional(v.number()),
   }).index("by_orgId", ["orgId"])
+    .index("by_fileId", ["fileId"])
     .index("by_fileType", ["fileType"])
     .index("by_isDeleted", ["isDeleted"]),
 });

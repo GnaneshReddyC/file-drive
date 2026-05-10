@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface SearchComponentProps {
   onSearch: (query: string) => void;
@@ -16,11 +16,11 @@ export function SearchComponent({ onSearch, searchQuery, resultCount }: SearchCo
   const [localQuery, setLocalQuery] = useState(searchQuery);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setLocalQuery("");
     onSearch("");
     setIsSearchOpen(false);
-  };
+  }, [onSearch]);
 
   const handleSearchChange = (value: string) => {
     setLocalQuery(value);
@@ -45,18 +45,17 @@ export function SearchComponent({ onSearch, searchQuery, resultCount }: SearchCo
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSearchOpen]);
+  }, [clearSearch, isSearchOpen]);
 
   // Don't show anything if search is closed and there's no active search
   if (!isSearchOpen && !searchQuery) {
     return (
       <Button
         onClick={() => setIsSearchOpen(true)}
-        className="relative overflow-hidden group bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white rounded-full px-5 py-2 transition-all duration-300 shadow-md hover:shadow-lg"
+        className="primary-action h-10 gap-2 px-4 text-sm font-semibold"
       >
-        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-        <Search className="w-4 h-4 mr-2" />
-        <span className="text-sm font-medium">Search Files</span>
+        <Search className="w-4 h-4" />
+        <span>Search Files</span>
       </Button>
     );
   }
@@ -86,11 +85,10 @@ export function SearchComponent({ onSearch, searchQuery, resultCount }: SearchCo
         ) : (
           <Button
             onClick={() => setIsSearchOpen(true)}
-            className="relative overflow-hidden group bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white rounded-full px-5 py-2 transition-all duration-300 shadow-md hover:shadow-lg"
+            className="primary-action h-10 gap-2 px-4 text-sm font-semibold"
           >
-            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-            <Search className="w-4 h-4 mr-2" />
-            <span className="text-sm font-medium">Search Files</span>
+            <Search className="w-4 h-4" />
+            <span>Search Files</span>
           </Button>
         )}
       </div>
@@ -100,8 +98,8 @@ export function SearchComponent({ onSearch, searchQuery, resultCount }: SearchCo
         <div className="mt-4 mb-4 flex items-center gap-2 text-sm text-gray-500 animate-in slide-in-from-top-1 duration-200">
           <div className="w-1 h-1 rounded-full bg-emerald-400" />
           <span>
-            Found {resultCount} result{resultCount !== 1 ? 's' : ''} for “
-            <span className="font-medium text-gray-700">{searchQuery}</span>”
+            Found {resultCount} result{resultCount !== 1 ? 's' : ''} for &quot;
+            <span className="font-medium text-gray-700">{searchQuery}</span>&quot;
           </span>
           <button
             onClick={clearSearch}
@@ -120,7 +118,7 @@ export function SearchComponent({ onSearch, searchQuery, resultCount }: SearchCo
           </div>
           <p className="text-gray-500 text-lg font-medium">No files found</p>
           <p className="text-gray-400 text-sm">
-            No results matching "{searchQuery}"
+            No results matching &quot;{searchQuery}&quot;
           </p>
           <Button 
             variant="outline" 

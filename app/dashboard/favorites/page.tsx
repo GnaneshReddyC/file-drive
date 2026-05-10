@@ -19,11 +19,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { UploadButton } from "@/app/upload-button";
-import { FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, Trash2, Download, Star, Sparkles } from "lucide-react";
-import { Id } from "@/convex/_generated/dataModel";
+import { FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, Trash2, Download, Star } from "lucide-react";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
 import { toast } from "sonner";
+import { EmptySketch } from "@/app/empty-sketch";
+import { FileCard as DriveFileCard, FileListItem } from "@/app/file-card";
+import { FileViewMode, FileViewToggle } from "@/app/file-view-toggle";
+import { DeleteSelectedButton } from "@/app/delete-selected-button";
+import { MultiSelectToggle } from "@/app/multi-select-toggle";
+import { useFileMultiSelect } from "@/app/use-file-multi-select";
+
+type FileDocument = Doc<"files">;
 
 function getFileIcon(type: string) {
   if (type?.startsWith("image/")) return <ImageIcon className="w-8 h-8" />;
@@ -57,8 +64,11 @@ function SkeletonCard() {
   );
 }
 
-function FileCard({ file }: { file: any }) {
+function FileCard({ file }: { file: FileDocument }) {
   const deleteFile = useMutation(api.files.deleteFile);
+  const { membership, organization } = useOrganization();
+  const orgId = organization?.id || "";
+  const canDelete = !orgId || membership?.role === "org:admin";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleConfirmDelete = async () => {
@@ -73,9 +83,9 @@ function FileCard({ file }: { file: any }) {
 
   return (
     <>
-      <div className="file-card group relative bg-white rounded-2xl overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-lg">
+      <div className="file-card group relative overflow-hidden border border-gray-200 bg-white">
         <div className={`h-1 w-full bg-gradient-to-r ${getFileColor(file.type)}`} />
-        <div className={`flex items-center justify-center h-28 bg-gradient-to-br ${getFileColor(file.type)} opacity-90`}>
+        <div className={`flex items-center justify-center h-24 bg-gradient-to-br ${getFileColor(file.type)} opacity-90`}>
           <div className="text-white">{getFileIcon(file.type)}</div>
         </div>
         <div className="p-3 flex items-start justify-between gap-1">
@@ -99,13 +109,15 @@ function FileCard({ file }: { file: any }) {
                 <Download className="w-4 h-4" />
                 Download
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-500 focus:text-red-500 cursor-pointer flex items-center gap-2"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </DropdownMenuItem>
+              {canDelete && (
+                <DropdownMenuItem
+                  className="text-red-500 focus:text-red-500 cursor-pointer flex items-center gap-2"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -116,7 +128,7 @@ function FileCard({ file }: { file: any }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This file will be permanently deleted.
+              This file will move to Trash. You can restore it later or delete it forever from the Trash page.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -133,14 +145,10 @@ function FileCard({ file }: { file: any }) {
 
 function EmptyFavoritesState() {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center px-6">
-      <div className="text-center max-w-2xl mx-auto">
-        <div className="relative inline-block mb-8">
-          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-full p-8 border border-gray-200">
-            <Star className="w-16 h-16 text-gray-400" />
-          </div>
-        </div>
-        <h2 className="text-4xl font-bold text-gray-900 mb-3" style={{ fontFamily: "'Playfair Display', serif" }}>
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
+      <div className="empty-state mx-auto max-w-2xl px-10 py-14 text-center">
+        <EmptySketch tone="favorite" />
+        <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">
           No favorites yet
         </h2>
         <p className="text-gray-500 mb-8 text-lg">
@@ -157,21 +165,17 @@ function EmptyFavoritesState() {
 export default function FavoritesPage() {
   const { organization } = useOrganization();
   const orgId = organization?.id || "";
+  const [viewMode, setViewMode] = useState<FileViewMode>("grid");
+  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, deleteSelectedFiles } = useFileMultiSelect();
   const files = useQuery(api.files.getFiles, { orgId });
   const isLoading = files === undefined;
 
   const favoriteFiles = files?.filter((file) => file.isFavorite === true);
 
   return (
-    <div className="min-h-screen bg-white">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
-        .file-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .file-card:hover { transform: translateY(-4px); }
-      `}</style>
-
+    <div className="workspace-page">
       {isLoading ? (
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="workspace-container">
           <div className="flex items-end justify-between mb-8">
             <div>
               <div className="h-3 bg-gray-300 rounded w-32 mb-3 animate-pulse" />
@@ -185,22 +189,51 @@ export default function FavoritesPage() {
       ) : favoriteFiles?.length === 0 ? (
         <EmptyFavoritesState />
       ) : (
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-              <p className="text-xs font-medium tracking-[0.3em] text-gray-400 uppercase">
-                {organization?.name ?? "Personal"} · {favoriteFiles?.length || 0} favorites
-              </p>
+        <div className="workspace-container">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                <p className="workspace-kicker">
+                  {organization?.name ?? "Personal"} / {favoriteFiles?.length || 0} favorites
+                </p>
+              </div>
+              <h1 className="workspace-title">
+                Your Favorites
+              </h1>
             </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif" }} className="text-3xl font-bold text-gray-900">
-              Your Favorites
-            </h1>
+            <div className="flex items-center gap-3">
+              <FileViewToggle value={viewMode} onChange={setViewMode} />
+              <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+              {selectedIds.size > 0 && <DeleteSelectedButton onClick={deleteSelectedFiles} />}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {favoriteFiles?.map((file) => <FileCard key={file._id} file={file} />)}
-          </div>
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {favoriteFiles?.map((file) => (
+                <DriveFileCard
+                  key={file._id}
+                  file={file}
+                  isSelecting={isSelecting}
+                  isSelected={selectedIds.has(file._id)}
+                  onSelectionChange={(selectedFile) => toggleSelectedFile(selectedFile._id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {favoriteFiles?.map((file) => (
+                <FileListItem
+                  key={file._id}
+                  file={file}
+                  isSelecting={isSelecting}
+                  isSelected={selectedIds.has(file._id)}
+                  onSelectionChange={(selectedFile) => toggleSelectedFile(selectedFile._id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
