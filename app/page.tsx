@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { UploadButton } from "@/app/upload-button";
-import { FileCard } from "@/app/file-card";
+import { FileCard, FileListItem } from "@/app/file-card";
+import { FileViewMode, FileViewToggle } from "@/app/file-view-toggle";
+import { DeleteSelectedButton } from "@/app/delete-selected-button";
+import { MultiSelectToggle } from "@/app/multi-select-toggle";
 import { SearchComponent } from "@/app/search-component";
 import { EmptySketch } from "@/app/empty-sketch";
 import { FileDriveLogo } from "@/app/file-drive-logo";
+import { useFileMultiSelect } from "@/app/use-file-multi-select";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
 
@@ -47,6 +51,8 @@ function FilesList() {
   const { organization } = useOrganization();
   const orgId = organization?.id || "";
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<FileViewMode>("grid");
+  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, deleteSelectedFiles } = useFileMultiSelect();
   
   const files = useQuery(api.files.getFiles, { orgId });
   
@@ -63,7 +69,7 @@ function FilesList() {
     <div className="workspace-page">
       <div className="workspace-container">
         <div className="mb-6 border-b border-slate-200 pb-5">
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="workspace-kicker mb-2">
                 {organization?.name ?? "Personal"} / {filteredFiles?.length ?? 0} files
@@ -73,22 +79,51 @@ function FilesList() {
               </h1>
               <p className="workspace-subtitle mt-2">A focused workspace for your uploaded files.</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white/80 p-2 shadow-sm backdrop-blur-sm">
               <SearchComponent 
                 onSearch={setSearchQuery}
                 searchQuery={searchQuery}
                 resultCount={filteredFiles?.length || 0}
               />
+              <FileViewToggle value={viewMode} onChange={setViewMode} />
+              <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+              {selectedIds.size > 0 && <DeleteSelectedButton onClick={deleteSelectedFiles} />}
               <UploadButton orgId={orgId} />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filteredFiles?.map((file) => (
-            <FileCard key={file._id} file={file} />
-          ))}
-        </div>
+        {viewMode === "grid" ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {filteredFiles?.map((file) => (
+              <FileCard
+                key={file._id}
+                file={file}
+                isSelecting={isSelecting}
+                isSelected={selectedIds.has(file._id)}
+                onSelectionChange={(selectedFile) => toggleSelectedFile(selectedFile._id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_72px] gap-4 px-3 text-xs font-medium uppercase tracking-wide text-gray-400 sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px]">
+              <span>Name</span>
+              <span className="hidden sm:block">Size</span>
+              <span className="hidden md:block">Added</span>
+              <span className="text-right">Actions</span>
+            </div>
+            {filteredFiles?.map((file) => (
+              <FileListItem
+                key={file._id}
+                file={file}
+                isSelecting={isSelecting}
+                isSelected={selectedIds.has(file._id)}
+                onSelectionChange={(selectedFile) => toggleSelectedFile(selectedFile._id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

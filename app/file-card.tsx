@@ -294,7 +294,12 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="text-gray-400 hover:text-gray-700 p-0.5 rounded flex-shrink-0">
+          <button
+            type="button"
+            className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+            aria-label={`More actions for ${file.name}`}
+            title="More actions"
+          >
             <MoreVertical className="w-4 h-4" />
           </button>
         </DropdownMenuTrigger>
@@ -348,6 +353,7 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
               title={file.folderId ? "Move out" : "Move to folder"}
             >
               <FolderInput className="w-4 h-4" />
+              {file.folderId ? "Move out" : "Move to folder"}
             </DropdownMenuItem>
           )}
           {canDelete && (
