@@ -9,6 +9,7 @@ import { api } from "../convex/_generated/api";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, UploadCloud, X } from "lucide-react";
+import type { Id } from "@/convex/_generated/dataModel";
 
 function getToastErrorMessage(error: unknown) {
   const data = error && typeof error === "object" && "data" in error ? error.data : undefined;
@@ -16,7 +17,7 @@ function getToastErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong, please try again.";
 }
 
-export function UploadButton({ orgId }: { orgId: string }) {
+export function UploadButton({ orgId, folderId }: { orgId: string; folderId?: Id<"folders"> }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -105,6 +106,7 @@ export function UploadButton({ orgId }: { orgId: string }) {
         const createdFile = await createFile({
           name: isBatchUpload ? selectedFile.name : trimmedTitle,
           orgId,
+          folderId,
           type: selectedFile.type || "application/octet-stream",
           fileType,
           fileId: storageId,

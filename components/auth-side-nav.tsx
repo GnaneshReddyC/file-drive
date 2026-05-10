@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import { Suspense } from "react";
 import { SideNav } from "./side-nav";
 
 export function AuthSideNav() {
@@ -8,5 +9,9 @@ export function AuthSideNav() {
   
   if (!isSignedIn) return null;
   
-  return <SideNav />;
+  return (
+    <Suspense fallback={null}>
+      <SideNav />
+    </Suspense>
+  );
 }

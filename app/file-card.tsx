@@ -27,9 +27,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { CheckSquare, FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, Trash2, Download, Star, Pencil, Square, Pin, PinOff, Share2 } from "lucide-react";
+import { CheckSquare, FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, Trash2, Download, Star, Pencil, Square, Pin, PinOff, Share2, FolderInput } from "lucide-react";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { FilePreviewModal } from "@/components/file-preview-modal";
@@ -116,16 +116,21 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
   const renameFile = useMutation(api.files.renameFile);
   const togglePin = useMutation(api.files.togglePin);
   const createShareLink = useMutation(api.files.createShareLink);
+  const moveFile = useMutation(api.files.moveFile);
   const { membership, organization } = useOrganization();
   const orgId = organization?.id || "";
   const canDelete = !orgId || membership?.role === "org:admin";
   const canRename = !orgId || membership?.role === "org:admin";
   const canPin = !orgId || membership?.role === "org:admin";
+  const canMove = !orgId || membership?.role === "org:admin";
+  const folders = useQuery(api.files.getAllFolders, { orgId });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<Id<"files"> | null>(null);
   const [newFileName, setNewFileName] = useState(file.name);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareExpiresInDays, setShareExpiresInDays] = useState(7);
@@ -245,6 +250,29 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
     }
   };
 
+  const handleMoveFile = async (folderId?: Id<"folders"> | null) => {
+    try {
+      setIsMoving(true);
+      const result = await moveFile({ id: fileId, folderId });
+      if (!result.success) {
+        toast.error("Failed to move file", {
+          description: result.message,
+        });
+        return;
+      }
+
+      toast.success(folderId ? "File moved to folder" : "File moved to root");
+      setMoveDialogOpen(false);
+    } catch (error) {
+      const message = getToastErrorMessage(error);
+      toast.error("Failed to move file", {
+        description: message,
+      });
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
   const copyText = async (text: string) => {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
@@ -304,6 +332,24 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
               Rename
             </DropdownMenuItem>
           )}
+          {canMove && (
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2"
+              onClick={() => {
+                if (file.folderId) {
+                  void handleMoveFile(null);
+                  return;
+                }
+
+                setMoveDialogOpen(true);
+              }}
+              disabled={isMoving}
+              aria-label={file.folderId ? "Move file out" : "Move file to folder"}
+              title={file.folderId ? "Move out" : "Move to folder"}
+            >
+              <FolderInput className="w-4 h-4" />
+            </DropdownMenuItem>
+          )}
           {canDelete && (
             <DropdownMenuItem
               className="text-red-500 focus:text-red-500 cursor-pointer flex items-center gap-2"
@@ -343,6 +389,39 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move file</DialogTitle>
+            <DialogDescription>Choose where to place this file.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {folders === undefined ? (
+              <p className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500">
+                Loading folders...
+              </p>
+            ) : folders.length === 0 ? (
+              <p className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500">
+                No folders yet.
+              </p>
+            ) : (
+              folders.map((folder) => (
+                <Button
+                  key={folder._id}
+                  type="button"
+                  variant={file.folderId === folder._id ? "default" : "outline"}
+                  onClick={() => handleMoveFile(folder._id)}
+                  disabled={isMoving || file.folderId === folder._id}
+                  className="justify-start"
+                >
+                  {folder.name}
+                </Button>
+              ))
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

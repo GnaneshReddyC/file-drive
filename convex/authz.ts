@@ -57,3 +57,19 @@ export function canManageFile(identity: UserIdentity, file: Doc<"files">) {
 
   return file.userId === identity.subject;
 }
+
+export function canReadFolder(identity: UserIdentity, folder: Doc<"folders">) {
+  if (folder.orgId) {
+    return isOrgMember(identity, folder.orgId);
+  }
+
+  return folder.userId === identity.subject;
+}
+
+export function canManageFolder(identity: UserIdentity, folder: Doc<"folders">) {
+  if (folder.orgId) {
+    return isOrgAdmin(identity, folder.orgId);
+  }
+
+  return folder.userId === identity.subject;
+}

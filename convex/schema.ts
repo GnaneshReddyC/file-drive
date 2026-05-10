@@ -12,6 +12,7 @@ export default defineSchema({
     name: v.string(),
     orgId: v.string(),
     userId: v.string(),
+    folderId: v.optional(v.id("folders")),
     fileId: v.string(),
     url: v.string(),
     type: v.string(),
@@ -25,6 +26,16 @@ export default defineSchema({
     .index("by_fileId", ["fileId"])
     .index("by_fileType", ["fileType"])
     .index("by_isDeleted", ["isDeleted"]),
+
+  folders: defineTable({
+    name: v.string(),
+    orgId: v.string(),
+    userId: v.string(),
+    parentId: v.optional(v.id("folders")),
+    isDeleted: v.boolean(),
+    deletedAt: v.optional(v.number()),
+  }).index("by_orgId", ["orgId"])
+    .index("by_parentId", ["parentId"]),
 
   fileShares: defineTable({
     fileId: v.id("files"),

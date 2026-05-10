@@ -148,7 +148,7 @@ export default function TrashPage() {
                 {organization?.name ?? "Personal"} / {deletedFiles?.length || 0} deleted files
               </p>
             </div>
-            <h1 className="workspace-title">Trash</h1>
+            <h1 className="workspace-title">Trash</h1> 
           </div>
           {deletedFiles.length > 0 && (
             <div className="flex items-center gap-3">

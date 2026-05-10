@@ -10,6 +10,7 @@ export function useFileMultiSelect() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<Id<"files">>>(new Set());
   const deleteFiles = useMutation(api.files.deleteFiles);
+  const moveFiles = useMutation(api.files.moveFiles);
 
   const toggleSelecting = () => {
     setIsSelecting((current) => {
@@ -41,11 +42,35 @@ export function useFileMultiSelect() {
     }
   };
 
+  const moveSelectedFiles = async (folderId?: Id<"folders"> | null) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return false;
+
+    try {
+      const result = await moveFiles({ ids, folderId });
+      if (!result.success) {
+        toast.error("Failed to move selected files", {
+          description: result.message,
+        });
+        return false;
+      }
+
+      toast.success(`${ids.length} file${ids.length === 1 ? "" : "s"} moved`);
+      setSelectedIds(new Set());
+      setIsSelecting(false);
+      return true;
+    } catch {
+      toast.error("Failed to move selected files");
+      return false;
+    }
+  };
+
   return {
     isSelecting,
     selectedIds,
     toggleSelecting,
     toggleSelectedFile,
     deleteSelectedFiles,
+    moveSelectedFiles,
   };
 }

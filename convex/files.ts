@@ -1,7 +1,7 @@
 import { mutation, query, type DatabaseReader } from "./_generated/server";
 import { v } from "convex/values";
-import { canCreateFile, canManageFile, canReadFile, isOrgMember } from "./authz";
-import type { Id } from "./_generated/dataModel";
+import { canCreateFile, canManageFile, canReadFile, canReadFolder, isOrgMember } from "./authz";
+import type { Doc, Id } from "./_generated/dataModel";
 
 async function findActiveFileWithName(
   db: DatabaseReader,
@@ -28,6 +28,33 @@ async function findActiveFileWithName(
     if (excludeId && file._id === excludeId) return false;
     if (!orgId && file.userId !== userId) return false;
     return file.name.toLowerCase() === normalizedName;
+  });
+}
+
+async function findActiveFolderWithName(
+  db: DatabaseReader,
+  {
+    orgId,
+    userId,
+    parentId,
+    name,
+  }: {
+    orgId: string;
+    userId: string;
+    parentId?: Id<"folders">;
+    name: string;
+  }
+) {
+  const folders = await db
+    .query("folders")
+    .withIndex("by_orgId", (q) => q.eq("orgId", orgId))
+    .filter((q) => q.eq(q.field("isDeleted"), false))
+    .collect();
+  const normalizedName = name.toLowerCase();
+
+  return folders.find((folder) => {
+    if (!orgId && folder.userId !== userId) return false;
+    return folder.parentId === parentId && folder.name.toLowerCase() === normalizedName;
   });
 }
 
@@ -95,6 +122,49 @@ export const deleteFiles = mutation({
   },
 });
 
+export const moveFiles = mutation({
+  args: {
+    ids: v.array(v.id("files")),
+    folderId: v.optional(v.union(v.id("folders"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const uniqueIds = Array.from(new Set(args.ids));
+    if (uniqueIds.length === 0) return { success: true, ids: uniqueIds };
+
+    let destinationOrgId: string | null = null;
+    if (args.folderId) {
+      const folder = await ctx.db.get(args.folderId);
+      if (!folder || folder.isDeleted) return { success: false, message: "Folder not found" };
+      if (!canReadFolder(identity, folder)) {
+        return { success: false, message: "You do not have permission to move files there" };
+      }
+      destinationOrgId = folder.orgId;
+    }
+
+    for (const id of uniqueIds) {
+      const file = await ctx.db.get(id);
+      if (!file) throw new Error("File not found");
+
+      if (!canManageFile(identity, file)) {
+        throw new Error("You do not have permission to move one or more selected files");
+      }
+
+      if (destinationOrgId !== null && file.orgId !== destinationOrgId) {
+        return { success: false, message: "Files can only move to folders in the same workspace" };
+      }
+
+      await ctx.db.patch(id, {
+        folderId: args.folderId ?? undefined,
+      });
+    }
+
+    return { success: true, ids: uniqueIds };
+  },
+});
+
 export const renameFile = mutation({
   args: {
     id: v.id("files"),
@@ -128,11 +198,45 @@ export const renameFile = mutation({
   },
 });
 
+export const moveFile = mutation({
+  args: {
+    id: v.id("files"),
+    folderId: v.optional(v.union(v.id("folders"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const file = await ctx.db.get(args.id);
+    if (!file) throw new Error("File not found");
+
+    if (!canManageFile(identity, file)) {
+      throw new Error("You do not have permission to move this file");
+    }
+
+    if (args.folderId) {
+      const folder = await ctx.db.get(args.folderId);
+      if (!folder || folder.isDeleted) return { success: false, message: "Folder not found" };
+
+      if (!canReadFolder(identity, folder) || folder.orgId !== file.orgId) {
+        return { success: false, message: "You do not have permission to move this file there" };
+      }
+    }
+
+    await ctx.db.patch(args.id, {
+      folderId: args.folderId ?? undefined,
+    });
+
+    return { success: true, id: args.id };
+  },
+});
+
 
 export const createFile = mutation({
   args: { 
     name: v.string(), 
     orgId: v.optional(v.string()),
+    folderId: v.optional(v.id("folders")),
     fileId: v.string(),
     url: v.string(),
     type: v.string(),
@@ -146,6 +250,19 @@ export const createFile = mutation({
     const orgId = args.orgId || "";
     if (!canCreateFile(identity, orgId)) {
       throw new Error("You do not have permission to upload files here");
+    }
+
+    if (args.folderId) {
+      const folder = await ctx.db.get(args.folderId);
+      if (!folder || folder.isDeleted) {
+        await ctx.storage.delete(args.fileId);
+        return { success: false, message: "Folder not found" };
+      }
+
+      if (!canReadFolder(identity, folder) || folder.orgId !== orgId) {
+        await ctx.storage.delete(args.fileId);
+        return { success: false, message: "You do not have permission to upload to this folder" };
+      }
     }
 
     const name = args.name.trim();
@@ -168,6 +285,7 @@ export const createFile = mutation({
       name,
       userId: identity.subject,
       orgId: orgId,
+      folderId: args.folderId,
       type: args.type,
       fileType: args.fileType,
       fileId: args.fileId,
@@ -183,7 +301,10 @@ export const createFile = mutation({
 });
 
 export const getFiles = query({
-  args: { orgId: v.optional(v.string()) },
+  args: {
+    orgId: v.optional(v.string()),
+    folderId: v.optional(v.union(v.id("folders"), v.null())),
+  },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
@@ -191,21 +312,216 @@ export const getFiles = query({
     if (args.orgId) {
       if (!isOrgMember(identity, args.orgId)) return [];
 
-      const files = await ctx.db
+      let files = await ctx.db
         .query("files")
         .filter((q) => q.eq(q.field("orgId"), args.orgId))
         .filter((q) => q.eq(q.field("isDeleted"), false))
         .collect();
+      if (args.folderId !== undefined) {
+        files = files.filter((file) => (file.folderId ?? null) === args.folderId);
+      }
       return sortPinnedFirst(files);
     } else {
-      const files = await ctx.db
+      let files = await ctx.db
         .query("files")
         .filter((q) => q.eq(q.field("userId"), identity.subject))
         .filter((q) => q.eq(q.field("orgId"), ""))
         .filter((q) => q.eq(q.field("isDeleted"), false))
         .collect();
+      if (args.folderId !== undefined) {
+        files = files.filter((file) => (file.folderId ?? null) === args.folderId);
+      }
       return sortPinnedFirst(files);
     }
+  },
+});
+
+export const createFolder = mutation({
+  args: {
+    name: v.string(),
+    orgId: v.optional(v.string()),
+    parentId: v.optional(v.id("folders")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const orgId = args.orgId || "";
+    if (!canCreateFile(identity, orgId)) {
+      throw new Error("You do not have permission to create folders here");
+    }
+
+    if (args.parentId) {
+      const parent = await ctx.db.get(args.parentId);
+      if (!parent || parent.isDeleted) return { success: false, message: "Parent folder not found" };
+      if (!canReadFolder(identity, parent) || parent.orgId !== orgId) {
+        return { success: false, message: "You do not have permission to create a folder here" };
+      }
+    }
+
+    const name = args.name.trim();
+    if (!name) return { success: false, message: "Folder name is required" };
+
+    const duplicate = await findActiveFolderWithName(ctx.db, {
+      orgId,
+      userId: identity.subject,
+      parentId: args.parentId,
+      name,
+    });
+    if (duplicate) return { success: false, message: "A folder with this name already exists" };
+
+    const id = await ctx.db.insert("folders", {
+      name,
+      orgId,
+      userId: identity.subject,
+      parentId: args.parentId,
+      isDeleted: false,
+    });
+
+    return { success: true, id };
+  },
+});
+
+export const renameFolder = mutation({
+  args: {
+    id: v.id("folders"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const folder = await ctx.db.get(args.id);
+    if (!folder || folder.isDeleted) throw new Error("Folder not found");
+
+    if (!canReadFolder(identity, folder)) {
+      throw new Error("You do not have permission to rename this folder");
+    }
+
+    const name = args.name.trim();
+    if (!name) return { success: false, message: "Folder name is required" };
+    if (name === folder.name) return { success: true, id: args.id };
+
+    const duplicate = await findActiveFolderWithName(ctx.db, {
+      orgId: folder.orgId,
+      userId: folder.userId,
+      parentId: folder.parentId,
+      name,
+    });
+    if (duplicate) return { success: false, message: "A folder with this name already exists" };
+
+    await ctx.db.patch(args.id, { name });
+
+    return { success: true, id: args.id };
+  },
+});
+
+export const deleteFolder = mutation({
+  args: { id: v.id("folders") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const folder = await ctx.db.get(args.id);
+    if (!folder || folder.isDeleted) throw new Error("Folder not found");
+
+    if (!canReadFolder(identity, folder)) {
+      throw new Error("You do not have permission to delete this folder");
+    }
+
+    const childFolder = await ctx.db
+      .query("folders")
+      .withIndex("by_parentId", (q) => q.eq("parentId", args.id))
+      .filter((q) => q.eq(q.field("isDeleted"), false))
+      .first();
+    if (childFolder) return { success: false, message: "Delete or move nested folders first" };
+
+    const childFile = await ctx.db
+      .query("files")
+      .filter((q) => q.eq(q.field("folderId"), args.id))
+      .filter((q) => q.eq(q.field("isDeleted"), false))
+      .first();
+    if (childFile) return { success: false, message: "Move or delete files in this folder first" };
+
+    await ctx.db.patch(args.id, {
+      isDeleted: true,
+      deletedAt: Date.now(),
+    });
+
+    return { success: true, id: args.id };
+  },
+});
+
+export const getFolders = query({
+  args: {
+    orgId: v.optional(v.string()),
+    parentId: v.optional(v.union(v.id("folders"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const orgId = args.orgId || "";
+    if (orgId && !isOrgMember(identity, orgId)) return [];
+
+    let folders = await ctx.db
+      .query("folders")
+      .withIndex("by_orgId", (q) => q.eq("orgId", orgId))
+      .filter((q) => q.eq(q.field("isDeleted"), false))
+      .collect();
+
+    if (!orgId) {
+      folders = folders.filter((folder) => folder.userId === identity.subject);
+    }
+
+    const parentId = args.parentId ?? null;
+    return folders
+      .filter((folder) => (folder.parentId ?? null) === parentId)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  },
+});
+
+export const getAllFolders = query({
+  args: { orgId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const orgId = args.orgId || "";
+    if (orgId && !isOrgMember(identity, orgId)) return [];
+
+    let folders = await ctx.db
+      .query("folders")
+      .withIndex("by_orgId", (q) => q.eq("orgId", orgId))
+      .filter((q) => q.eq(q.field("isDeleted"), false))
+      .collect();
+
+    if (!orgId) {
+      folders = folders.filter((folder) => folder.userId === identity.subject);
+    }
+
+    return folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  },
+});
+
+export const getFolderPath = query({
+  args: { folderId: v.optional(v.union(v.id("folders"), v.null())) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !args.folderId) return [];
+
+    const path: Array<{ _id: Id<"folders">; name: string }> = [];
+    let currentId: Id<"folders"> | undefined = args.folderId;
+
+    while (currentId) {
+      const folder: Doc<"folders"> | null = await ctx.db.get(currentId);
+      if (!folder || folder.isDeleted || !canReadFolder(identity, folder)) return [];
+
+      path.unshift({ _id: folder._id, name: folder.name });
+      currentId = folder.parentId;
+    }
+
+    return path;
   },
 });
 

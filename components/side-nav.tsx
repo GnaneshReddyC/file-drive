@@ -1,9 +1,10 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Folder,
+  Folders,
   Star,
   Image,
   Video,
@@ -23,9 +24,15 @@ interface NavItem {
 export function SideNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentHref = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
-  const navItems: NavItem[] = [
+  const primaryItems: NavItem[] = [
     { name: "All Files", href: "/dashboard", icon: Folder },
+    { name: "Folders", href: "/dashboard?view=folders", icon: Folders },
+  ];
+
+  const categoryItems: NavItem[] = [
     { name: "Favorites", href: "/dashboard/favorites", icon: Star },
     { name: "Images", href: "/dashboard/images", icon: Image },
     { name: "Videos", href: "/dashboard/videos", icon: Video },
@@ -65,7 +72,18 @@ export function SideNav() {
         </div>
 
         <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navItems.map((item) => {
+          <div className="px-3 pb-2 pt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+            Files
+          </div>
+          {primaryItems.map((item) => {
+            const isActive = currentHref === item.href;
+            return <NavButton key={item.name} item={item} isActive={isActive} />;
+          })}
+          <div className="my-3 border-t border-slate-200" />
+          <div className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+            Categories
+          </div>
+          {categoryItems.map((item) => {
             const isActive = pathname === item.href;
             return <NavButton key={item.name} item={item} isActive={isActive} />;
           })}
