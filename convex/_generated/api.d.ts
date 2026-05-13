@@ -9,6 +9,7 @@
  */
 
 import type * as authz from "../authz.js";
+import type * as crons from "../crons.js";
 import type * as files from "../files.js";
 import type * as users from "../users.js";
 
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   authz: typeof authz;
+  crons: typeof crons;
   files: typeof files;
   users: typeof users;
 }>;

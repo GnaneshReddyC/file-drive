@@ -1,4 +1,4 @@
-import { mutation, query, type DatabaseReader } from "./_generated/server";
+import { internalMutation, mutation, query, type DatabaseReader } from "./_generated/server";
 import { v } from "convex/values";
 import { canCreateFile, canManageFile, canReadFile, canReadFolder, isOrgMember } from "./authz";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -951,3 +951,29 @@ function sortPinnedFirst<T extends { isPinned?: boolean; _creationTime: number }
     return b._creationTime - a._creationTime;
   });
 }
+
+export const cleanupExpiredTrashFiles = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - THIRTY_DAYS_MS;
+
+    const trashedFiles = await ctx.db
+      .query("files")
+      .withIndex("by_isDeleted", (q) => q.eq("isDeleted", true))
+      .collect();
+
+    const expiredFiles = trashedFiles.filter((file) => (file.deletedAt ?? 0) <= cutoff);
+    let deletedCount = 0;
+
+    for (const file of expiredFiles) {
+      if (file.fileId && file.fileId !== "") {
+        await ctx.storage.delete(file.fileId);
+      }
+      await ctx.db.delete(file._id);
+      deletedCount += 1;
+    }
+
+    return { deletedCount };
+  },
+});
