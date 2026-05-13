@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -493,7 +493,15 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
   const [isFavorited, setIsFavorited] = useState(file.isFavorite);
   const [isPinned, setIsPinned] = useState(Boolean(file.isPinned));
   const [isPinning, setIsPinning] = useState(false);
+  const [pinPulse, setPinPulse] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardDelay = (String(file._id).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 8) * 30;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), cardDelay);
+    return () => clearTimeout(timer);
+  }, [cardDelay]);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -512,6 +520,7 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
       setIsPinning(true);
       const nextState = await togglePin({ id: file._id as Id<"files"> });
       setIsPinned(nextState);
+      if (nextState) setPinPulse(true);
       toast.success(nextState ? "File pinned" : "File unpinned");
     } catch {
       toast.error("Failed to update pin");
@@ -539,7 +548,7 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
   return (
     <>
       <div
-        className={`file-card file-card-neo group relative cursor-pointer overflow-hidden border ${isSelected ? "ring-1 ring-[#6366f1]" : ""}`}
+        className={`file-card file-card-neo group relative cursor-pointer overflow-hidden border ${isSelected ? "ring-1 ring-[#6366f1]" : ""} ${isVisible ? "card-enter-in" : "card-enter"}`}
         onClick={() => {
           if (isSelecting) {
             onSelectionChange?.(file);
@@ -592,11 +601,13 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
                 aria-label={isPinned ? "Unpin file" : "Pin file"}
                 title={isPinned ? "Unpin file" : "Pin file"}
               >
-                {isPinned ? (
-                  <PinOff className="w-4 h-4 text-indigo-500" />
-                ) : (
-                  <Pin className="w-4 h-4" />
-                )}
+                <span className={pinPulse ? "pin-pop inline-flex" : "inline-flex"} onAnimationEnd={() => setPinPulse(false)}>
+                  {isPinned ? (
+                    <PinOff className="w-4 h-4 text-indigo-500" />
+                  ) : (
+                    <Pin className="w-4 h-4" />
+                  )}
+                </span>
               </button>
             )}
             <button
@@ -634,7 +645,15 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
   const [isFavorited, setIsFavorited] = useState(file.isFavorite);
   const [isPinned, setIsPinned] = useState(Boolean(file.isPinned));
   const [isPinning, setIsPinning] = useState(false);
+  const [pinPulse, setPinPulse] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardDelay = (String(file._id).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 8) * 30;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), cardDelay);
+    return () => clearTimeout(timer);
+  }, [cardDelay]);
 
   const handleToggleFavorite = async (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -653,6 +672,7 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
       setIsPinning(true);
       const nextState = await togglePin({ id: file._id as Id<"files"> });
       setIsPinned(nextState);
+      if (nextState) setPinPulse(true);
       toast.success(nextState ? "File pinned" : "File unpinned");
     } catch {
       toast.error("Failed to update pin");
@@ -680,7 +700,7 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
   return (
     <>
       <div
-        className={`file-list-row group grid min-h-14 grid-cols-[minmax(0,1fr)_72px] items-center gap-4 rounded-lg border px-3 py-2 transition-all duration-150 sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px] ${isSelected ? "ring-1 ring-[#6366f1]" : ""}`}
+        className={`file-list-row group grid min-h-14 grid-cols-[minmax(0,1fr)_72px] items-center gap-4 rounded-lg border px-3 py-2 transition-all duration-150 sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px] ${isSelected ? "ring-1 ring-[#6366f1]" : ""} ${isVisible ? "card-enter-in" : "card-enter"}`}
         onClick={() => {
           if (isSelecting) {
             onSelectionChange?.(file);
@@ -728,7 +748,9 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
               aria-label={isPinned ? "Unpin file" : "Pin file"}
               title={isPinned ? "Unpin file" : "Pin file"}
             >
-              {isPinned ? <PinOff className="w-4 h-4 text-indigo-500" /> : <Pin className="w-4 h-4" />}
+              <span className={pinPulse ? "pin-pop inline-flex" : "inline-flex"} onAnimationEnd={() => setPinPulse(false)}>
+                {isPinned ? <PinOff className="w-4 h-4 text-indigo-500" /> : <Pin className="w-4 h-4" />}
+              </span>
             </button>
           )}
           <button

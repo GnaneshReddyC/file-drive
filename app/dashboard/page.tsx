@@ -38,15 +38,15 @@ function EmptyState({ orgId }: { orgId: string }) {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
       <div className="empty-state mx-auto max-w-2xl px-10 py-14 text-center">
-        <EmptySketch />
-        <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">
+        <div className="empty-reveal"><EmptySketch tone="folder" /></div>
+        <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950 empty-reveal empty-reveal-delay-1">
           No files yet
         </h2>
-        <p className="text-gray-500 mb-8 text-lg">
+        <p className="text-gray-500 mb-8 text-lg empty-reveal empty-reveal-delay-2">
           Your digital space is waiting.
           <br />
         </p>
-        <UploadButton orgId={orgId} />
+        <div className="empty-reveal empty-reveal-delay-3"><UploadButton orgId={orgId} /></div>
       </div>
     </div>
   );
@@ -280,11 +280,11 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                <p className="workspace-kicker mb-2">
+                <p className="workspace-kicker mb-2 empty-reveal empty-reveal-delay-2">
                   {organization?.name ?? "Personal"} / {filteredFiles?.length || 0} files
                 </p>
                 <h1 className="workspace-title">{foldersOnly ? "Folders" : "Your Files"}</h1>
-                <p className="workspace-subtitle mt-2">
+                <p className="workspace-subtitle mt-2 empty-reveal empty-reveal-delay-2">
                   {foldersOnly ? "Create and open folders to organize your workspace." : "Upload, preview, organize, and ask AI about your files."}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -395,14 +395,14 @@ function DashboardContent() {
                     <Folder className="size-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800" title={folder.name}>
+                    <p className="truncate text-sm font-medium text-slate-800 empty-reveal empty-reveal-delay-2" title={folder.name}>
                       {folder.name}
                     </p>
-                    <p className="text-xs text-slate-500">Folder</p>
+                    <p className="text-xs text-slate-500 empty-reveal empty-reveal-delay-2">Folder</p>
                   </div>
                 </div>
-                <p className="hidden text-sm text-slate-500 sm:block">--</p>
-                <p className="hidden text-sm text-slate-500 md:block">--</p>
+                <p className="hidden text-sm text-slate-500 sm:block empty-reveal empty-reveal-delay-2">--</p>
+                <p className="hidden text-sm text-slate-500 md:block empty-reveal empty-reveal-delay-2">--</p>
                 <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
                   <FolderActionsMenu
                     folder={folder}
@@ -497,7 +497,7 @@ function DashboardContent() {
           </DialogHeader>
           <div className="grid gap-2">
             {allFolders?.length === 0 ? (
-              <p className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500">
+              <p className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 empty-reveal empty-reveal-delay-2">
                 No folders yet.
               </p>
             ) : (
@@ -662,7 +662,7 @@ function FolderActionsMenu({
                   </Button>
                 </div>
                 {shareExpiresAt && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 empty-reveal empty-reveal-delay-2">
                     Expires {new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(shareExpiresAt))}
                   </p>
                 )}
@@ -707,10 +707,10 @@ function FolderCard({
       </div>
       <div className="flex items-start justify-between gap-2 p-3">
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-medium text-slate-800" title={folder.name}>
+          <p className="truncate text-[14px] font-medium text-slate-800 empty-reveal empty-reveal-delay-2" title={folder.name}>
             {folder.name}
           </p>
-          <p className="mt-1 text-[12px] text-slate-500">Open folder</p>
+          <p className="mt-1 text-[12px] text-slate-500 empty-reveal empty-reveal-delay-2">Open folder</p>
         </div>
         <div onClick={(event) => event.stopPropagation()}>
           <FolderActionsMenu folder={folder} onRename={onRename} onDelete={onDelete} />
@@ -719,3 +719,4 @@ function FolderCard({
     </div>
   );
 }
+

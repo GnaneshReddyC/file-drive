@@ -45,11 +45,11 @@ function getFileIcon(name: string) {
 
 function getFileColor(name: string) {
   const ext = name.split(".").pop()?.toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext ?? "")) return "from-rose-400 to-pink-600";
-  if (["mp4", "mov", "avi", "mkv"].includes(ext ?? "")) return "from-violet-400 to-purple-600";
-  if (["mp3", "wav", "flac"].includes(ext ?? "")) return "from-amber-400 to-orange-500";
-  if (["pdf", "doc", "docx", "txt"].includes(ext ?? "")) return "from-sky-400 to-blue-600";
-  return "from-emerald-400 to-teal-600";
+  if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext ?? "")) return "bg-[#eef2ff]";
+  if (["mp4", "mov", "avi", "mkv"].includes(ext ?? "")) return "bg-[#e0e7ff]";
+  if (["mp3", "wav", "flac"].includes(ext ?? "")) return "bg-[#fef3c7]";
+  if (["pdf", "doc", "docx", "txt"].includes(ext ?? "")) return "bg-[#dbeafe]";
+  return "bg-[#dcfce7]";
 }
 
 export function TrashFileCard({
@@ -87,36 +87,38 @@ export function TrashFileCard({
           <button
             type="button"
             onClick={() => onSelectionChange?.(file._id)}
-            className="absolute left-2 top-2 z-10 rounded-md bg-black/55 p-1.5 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75"
+            className="absolute left-2 top-2 z-10 rounded-md bg-white/85 p-1.5 text-slate-700 transition hover:bg-white"
             aria-label={isSelected ? "Deselect file" : "Select file"}
             title={isSelected ? "Deselect file" : "Select file"}
           >
             {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
           </button>
         )}
-        <div className={`h-1 w-full bg-gradient-to-r ${getFileColor(file.name)}`} />
-        <div className={`flex items-center justify-center h-24 bg-gradient-to-br ${getFileColor(file.name)} opacity-90`}>
-          <div className="text-white">{getFileIcon(file.name)}</div>
+        <div className={`relative flex h-24 items-center justify-center ${getFileColor(file.name)}`}>
+          <span className="absolute right-2 top-2 rounded border border-indigo-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-indigo-600">
+            {file.name.split(".").pop()?.toUpperCase() ?? "FILE"}
+          </span>
+          <div className="text-indigo-500">{getFileIcon(file.name)}</div>
         </div>
-        <div className="p-3 flex items-start justify-between gap-1">
+        <div className="p-3 flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-gray-800 text-xs font-medium truncate" title={file.name}>
+            <p className="truncate text-[14px] font-medium text-slate-800" title={file.name}>
               {file.name}
             </p>
-            <p className="text-gray-400 text-[10px] mt-0.5 uppercase tracking-wider">
+            <p className="mt-1 text-[12px] text-slate-500 uppercase tracking-[0.04em]">
               {file.name.split(".").pop() ?? "file"}
             </p>
           </div>
           {canManage && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="text-gray-400 hover:text-gray-700 p-0.5 rounded flex-shrink-0">
+                <button className="rounded p-1.5 text-slate-400 transition-colors duration-150 hover:text-indigo-500">
                   <MoreVertical className="w-4 h-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-48 border-slate-200 bg-white text-slate-800 shadow-lg">
                 <DropdownMenuItem
-                  className="cursor-pointer flex items-center gap-2"
+                  className="cursor-pointer flex items-center gap-2 focus:bg-slate-100 focus:text-slate-900"
                   onClick={handleRestore}
                   disabled={isRestoring}
                 >
@@ -124,7 +126,7 @@ export function TrashFileCard({
                   {isRestoring ? "Restoring..." : "Restore"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="text-red-500 focus:text-red-500 cursor-pointer flex items-center gap-2"
+                  className="cursor-pointer flex items-center gap-2 text-red-500 focus:bg-red-50 focus:text-red-600"
                   onClick={handleDeleteClick}
                   disabled={isDeleting}
                 >

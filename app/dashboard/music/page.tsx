@@ -50,7 +50,7 @@ export default function MusicPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Music className="w-5 h-5 text-amber-500" />
-              <p className="workspace-kicker">
+              <p className="workspace-kicker empty-reveal empty-reveal-delay-2">
                 {organization?.name ?? "Personal"} / {musicFiles?.length || 0} music files
               </p>
             </div>
@@ -69,9 +69,9 @@ export default function MusicPage() {
 
         {musicFiles?.length === 0 ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-            <EmptySketch />
-            <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">No music files found</h2>
-            <p className="text-gray-500 text-lg">Audio files will appear here.</p>
+            <div className="empty-reveal"><EmptySketch tone="music" /></div>
+            <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950 empty-reveal empty-reveal-delay-1">No music files found</h2>
+            <p className="text-gray-500 text-lg empty-reveal empty-reveal-delay-2">Audio files will appear here.</p>
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -102,3 +102,4 @@ export default function MusicPage() {
     </div>
   );
 }
+

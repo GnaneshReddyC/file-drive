@@ -46,7 +46,10 @@
 
 @layer components {
   .app-shell {
-    background: #ffffff;
+    background:
+      radial-gradient(circle at 8% 10%, rgba(99, 102, 241, 0.1), transparent 24rem),
+      radial-gradient(circle at 92% 14%, rgba(14, 165, 233, 0.08), transparent 26rem),
+      #f8faff;
   }
 
   .top-header {
@@ -75,9 +78,9 @@
   .workspace-page {
     min-height: calc(100vh - 4rem);
     background:
-      radial-gradient(circle at 12% 18%, rgba(244, 114, 182, 0.12), transparent 25rem),
-      radial-gradient(circle at 88% 9%, rgba(99, 102, 241, 0.1), transparent 26rem),
-      #ffffff;
+      radial-gradient(circle at 12% 18%, rgba(99, 102, 241, 0.12), transparent 25rem),
+      radial-gradient(circle at 88% 9%, rgba(14, 165, 233, 0.1), transparent 26rem),
+      #f8faff;
   }
 
   .workspace-container {
@@ -176,9 +179,12 @@
   }
 
   .empty-state {
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    border-radius: 0.75rem;
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .sketch-asset {
@@ -194,6 +200,37 @@
 
   .sketch-line-delay {
     animation-delay: 220ms;
+  }
+
+  .pin-pop {
+    animation: pin-pop 220ms ease-out;
+  }
+
+  .card-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .card-enter-in {
+    animation: card-enter-in 320ms ease-out forwards;
+  }
+
+  .empty-reveal {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: empty-reveal 420ms ease-out forwards;
+  }
+
+  .empty-reveal-delay-1 {
+    animation-delay: 90ms;
+  }
+
+  .empty-reveal-delay-2 {
+    animation-delay: 170ms;
+  }
+
+  .empty-reveal-delay-3 {
+    animation-delay: 250ms;
   }
 
   .upload-zone {
@@ -327,5 +364,31 @@
 @keyframes sketch-draw {
   to {
     stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pin-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes card-enter-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes empty-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

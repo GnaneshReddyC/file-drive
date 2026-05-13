@@ -49,7 +49,7 @@ export default function PdfsPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <File className="w-5 h-5 text-red-500" />
-              <p className="workspace-kicker">
+              <p className="workspace-kicker empty-reveal empty-reveal-delay-2">
                 {organization?.name ?? "Personal"} / {pdfFiles?.length || 0} PDFs
               </p>
             </div>
@@ -68,9 +68,9 @@ export default function PdfsPage() {
 
         {pdfFiles?.length === 0 ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-            <EmptySketch />
-            <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">No PDFs found</h2>
-            <p className="text-gray-500 text-lg">PDF files will appear here.</p>
+            <div className="empty-reveal"><EmptySketch tone="pdf" /></div>
+            <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950 empty-reveal empty-reveal-delay-1">No PDFs found</h2>
+            <p className="text-gray-500 text-lg empty-reveal empty-reveal-delay-2">PDF files will appear here.</p>
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -101,3 +101,4 @@ export default function PdfsPage() {
     </div>
   );
 }
+

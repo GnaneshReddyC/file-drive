@@ -23,7 +23,7 @@ import { FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, 
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
 import { toast } from "sonner";
-import { SectionEmptyState } from "@/app/section-empty-state";
+import { EmptySketch } from "@/app/empty-sketch";
 import { FileCard as DriveFileCard, FileListItem } from "@/app/file-card";
 import { FileViewMode, FileViewToggle } from "@/app/file-view-toggle";
 import { DeleteSelectedButton } from "@/app/delete-selected-button";
@@ -90,8 +90,8 @@ function FileCard({ file }: { file: FileDocument }) {
         </div>
         <div className="p-3 flex items-start justify-between gap-1">
           <div className="min-w-0">
-            <p className="text-gray-800 text-xs font-medium truncate" title={file.name}>{file.name}</p>
-            <p className="text-gray-400 text-[10px] mt-0.5 uppercase tracking-wider">
+            <p className="text-gray-800 text-xs font-medium truncate empty-reveal empty-reveal-delay-2" title={file.name}>{file.name}</p>
+            <p className="text-gray-400 text-[10px] mt-0.5 uppercase tracking-wider empty-reveal empty-reveal-delay-2">
               {file.type?.split("/")[1] || file.type || "file"}
             </p>
           </div>
@@ -145,12 +145,11 @@ function FileCard({ file }: { file: FileDocument }) {
 
 function EmptyFavoritesState() {
   return (
-    <SectionEmptyState
-      variant="favorites"
-      title="No favorites yet"
-      subtitle="Starred files will be collected here for quick access."
-      hint="☆ Mark any file as favorite to pin it here."
-    />
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+      <div className="empty-reveal"><EmptySketch tone="favorite" /></div>
+      <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950 empty-reveal empty-reveal-delay-1">No favorites yet</h2>
+      <p className="text-gray-500 text-lg empty-reveal empty-reveal-delay-2">Starred files will be collected here for quick access.</p>
+    </div>
   );
 }
 
@@ -187,7 +186,7 @@ export default function FavoritesPage() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                <p className="workspace-kicker">
+                <p className="workspace-kicker empty-reveal empty-reveal-delay-2">
                   {organization?.name ?? "Personal"} / {favoriteFiles?.length || 0} favorites
                 </p>
               </div>
@@ -232,3 +231,6 @@ export default function FavoritesPage() {
     </div>
   );
 }
+
+
+

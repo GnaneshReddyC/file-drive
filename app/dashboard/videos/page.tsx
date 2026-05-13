@@ -8,7 +8,7 @@ import { FileViewMode, FileViewToggle } from "@/app/file-view-toggle";
 import { DeleteSelectedButton } from "@/app/delete-selected-button";
 import { MultiSelectToggle } from "@/app/multi-select-toggle";
 import { useFileMultiSelect } from "@/app/use-file-multi-select";
-import { SectionEmptyState } from "@/app/section-empty-state";
+import { EmptySketch } from "@/app/empty-sketch";
 import { Video } from "lucide-react";
 import { useState } from "react";
 
@@ -50,7 +50,7 @@ export default function VideosPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Video className="w-5 h-5 text-purple-500" />
-              <p className="workspace-kicker">
+              <p className="workspace-kicker empty-reveal empty-reveal-delay-2">
                 {organization?.name ?? "Personal"} / {videoFiles?.length || 0} videos
               </p>
             </div>
@@ -68,12 +68,11 @@ export default function VideosPage() {
         </div>
 
         {videoFiles?.length === 0 ? (
-          <SectionEmptyState
-            variant="videos"
-            title="No videos yet"
-            subtitle="Video files will appear here when you upload them."
-            hint="⇧ Drag video files into the workspace to add them."
-          />
+          <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+            <div className="empty-reveal"><EmptySketch tone="video" /></div>
+            <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950 empty-reveal empty-reveal-delay-1">No videos yet</h2>
+            <p className="text-gray-500 text-lg empty-reveal empty-reveal-delay-2">Video files will appear here when you upload them.</p>
+          </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {videoFiles?.map((file) => (
@@ -103,3 +102,5 @@ export default function VideosPage() {
     </div>
   );
 }
+
+

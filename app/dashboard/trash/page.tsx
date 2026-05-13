@@ -145,7 +145,7 @@ export default function TrashPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Trash2 className="w-5 h-5 text-red-500" />
-              <p className="workspace-kicker">
+              <p className="workspace-kicker empty-reveal empty-reveal-delay-2">
                 {organization?.name ?? "Personal"} / {deletedFiles?.length || 0} deleted files
               </p>
             </div>
@@ -184,9 +184,9 @@ export default function TrashPage() {
 
           <div className="flex min-h-[60vh] items-center justify-center px-4">
             <div className="empty-state w-full max-w-xl px-8 py-12 text-center">
-              <EmptySketch tone="trash" />
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">Trash is empty</h2>
-              <p className="mt-3 text-sm text-slate-600">Deleted files will appear here for 30 days before permanent removal.</p>
+              <div className="empty-reveal"><EmptySketch tone="trash" /></div>
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 empty-reveal empty-reveal-delay-1">Trash is empty</h2>
+              <p className="mt-3 text-sm text-slate-600 empty-reveal empty-reveal-delay-2">Deleted files will appear here for 30 days before permanent removal.</p>
               <div className="mt-6 flex items-center justify-center gap-3">
                 <Link
                   href="/dashboard"
@@ -218,4 +218,5 @@ export default function TrashPage() {
     </div>
   );
 }
+
 
