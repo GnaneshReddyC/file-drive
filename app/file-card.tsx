@@ -113,14 +113,12 @@ function formatFileDate(timestamp: number) {
 function FileDropdownMenu({ file }: { file: FileDocument }) {
   const deleteFile = useMutation(api.files.deleteFile);
   const renameFile = useMutation(api.files.renameFile);
-  const togglePin = useMutation(api.files.togglePin);
   const createShareLink = useMutation(api.files.createShareLink);
   const moveFile = useMutation(api.files.moveFile);
   const { membership, organization } = useOrganization();
   const orgId = organization?.id || "";
   const canDelete = !orgId || membership?.role === "org:admin";
   const canRename = !orgId || membership?.role === "org:admin";
-  const canPin = !orgId || membership?.role === "org:admin";
   const canMove = !orgId || membership?.role === "org:admin";
   const folders = useQuery(api.files.getAllFolders, { orgId });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -130,14 +128,12 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
   const [newFileName, setNewFileName] = useState(file.name);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
-  const [isPinning, setIsPinning] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareExpiresInDays, setShareExpiresInDays] = useState(7);
   const [shareUrl, setShareUrl] = useState("");
   const [shareExpiresAt, setShareExpiresAt] = useState<number | null>(null);
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
   const fileId = file._id as Id<"files">;
-  const isPinned = Boolean(file.isPinned);
   const shareExpiryOptions = [1, 7, 14, 30];
 
   const handleDeleteClick = (id: Id<"files">) => {
@@ -198,21 +194,6 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
       });
     } finally {
       setIsRenaming(false);
-    }
-  };
-
-  const handleTogglePin = async () => {
-    try {
-      setIsPinning(true);
-      const newState = await togglePin({ id: fileId });
-      toast.success(newState ? "File pinned" : "File unpinned");
-    } catch (error) {
-      const message = getToastErrorMessage(error);
-      toast.error("Failed to update pin", {
-        description: message,
-      });
-    } finally {
-      setIsPinning(false);
     }
   };
 
