@@ -7,11 +7,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FileIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Bot, FileIcon } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
+import { FileAiChatDialog } from "@/components/file-ai-chat-dialog";
 import Image from "next/image";
+import { useState } from "react";
 
 type FileDocument = Doc<"files">;
 
@@ -32,7 +35,8 @@ function getFileType(file: FileDocument) {
 }
 
 export function FilePreviewModal({ file, open, onOpenChange }: FilePreviewModalProps) {
-  const fetchedUrl = useQuery(api.files.getFileUrl, file?.fileId ? { storageId: file.fileId } : "skip");
+  const fetchedUrl = useQuery(api.files.getFileUrl, open && file?.fileId ? { storageId: file.fileId } : "skip");
+  const [aiChatOpen, setAiChatOpen] = useState(false);
   const fileType = file ? getFileType(file) : "other";
 
   if (!file) return null;
@@ -96,23 +100,36 @@ export function FilePreviewModal({ file, open, onOpenChange }: FilePreviewModalP
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 truncate pr-8">
-            <span className="truncate">{file.name}</span>
-            <span className="text-xs text-gray-400 font-normal">
-              {(file.size / 1024 / 1024).toFixed(2)} MB
-            </span>
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Preview and download options for {file.name}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-auto">
-          {renderPreview()}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <div className="flex items-start justify-between gap-3 pr-8">
+              <DialogTitle className="flex min-w-0 items-center gap-2">
+                <span className="truncate">{file.name}</span>
+                <span className="shrink-0 text-xs text-gray-400 font-normal">
+                  {(file.size / 1024 / 1024).toFixed(2)} MB
+                </span>
+              </DialogTitle>
+              <Button
+                type="button"
+                onClick={() => setAiChatOpen(true)}
+                className="h-9 shrink-0 gap-2 bg-black px-3 text-white hover:bg-gray-800"
+              >
+                <Bot className="size-4" />
+                Ask AI
+              </Button>
+            </div>
+            <DialogDescription className="sr-only">
+              Preview and download options for {file.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {renderPreview()}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <FileAiChatDialog file={file} open={aiChatOpen} onOpenChange={setAiChatOpen} />
+    </>
   );
 }

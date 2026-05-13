@@ -60,6 +60,7 @@ function FilesList() {
     if (searchQuery && !file.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+  const totalFiles = files?.length ?? 0;
 
   if (files?.length === 0) {
     return <EmptyState orgId={orgId} />;
@@ -68,18 +69,17 @@ function FilesList() {
   return (
     <div className="workspace-page">
       <div className="workspace-container">
-        <div className="mb-6 border-b border-slate-200 pb-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="hero-panel mb-6 overflow-hidden border-b border-slate-200 pb-5">
+          <div className="hero-noise" />
+          <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="workspace-kicker mb-2">
-                {organization?.name ?? "Personal"} / {filteredFiles?.length ?? 0} files
-              </p>
-              <h1 className="workspace-title">
-                Your Files
-              </h1>
-              <p className="workspace-subtitle mt-2">A focused workspace for your uploaded files.</p>
+              <p className="workspace-kicker mb-2">{organization?.name ?? "Personal"}</p>
+              <h1 className="workspace-title">Creative Vault</h1>
+              <span className="workspace-chip mt-4 inline-flex rounded-full px-3 py-1 text-xs">
+                {totalFiles} files · synced
+              </span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white/80 p-2 shadow-sm backdrop-blur-sm">
+            <div className="toolbar-panel flex flex-wrap items-center gap-2 rounded-lg border p-2">
               <SearchComponent 
                 onSearch={setSearchQuery}
                 searchQuery={searchQuery}
@@ -92,9 +92,8 @@ function FilesList() {
             </div>
           </div>
         </div>
-
         {viewMode === "grid" ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {filteredFiles?.map((file) => (
               <FileCard
                 key={file._id}
@@ -107,7 +106,7 @@ function FilesList() {
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="grid grid-cols-[minmax(0,1fr)_72px] gap-4 px-3 text-xs font-medium uppercase tracking-wide text-gray-400 sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px]">
+            <div className="grid grid-cols-[minmax(0,1fr)_72px] gap-4 px-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[#6b6b80] sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px]">
               <span>Name</span>
               <span className="hidden sm:block">Size</span>
               <span className="hidden md:block">Added</span>
@@ -136,29 +135,43 @@ export default function Home() {
         <FilesList />
       </Authenticated>
       <Unauthenticated>
-  <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
-    <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white px-8 py-10 text-center shadow-sm">
-      <div className="mb-6">
-        <div className="flex justify-center">
-          <FileDriveLogo size="lg" />
+        <div className="signin-screen fixed inset-0 overflow-auto">
+          <div className="grid min-h-screen grid-cols-1 md:grid-cols-2">
+            <section className="signin-editorial relative overflow-hidden px-8 py-14 md:px-16">
+              <div className="signin-orb signin-orb-one" />
+              <div className="signin-orb signin-orb-two" />
+              <div className="relative z-10 flex min-h-full max-w-xl items-center">
+                <div>
+                  <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-[#7c3aed]">NextDrive Studio</p>
+                  <h1 className="signin-headline text-[#0f172a]">
+                    Your files,
+                    <br />
+                    now iconic.
+                  </h1>
+                  <p className="signin-subline mt-6">Design-forward storage for teams that ship fast and hate boring tools.</p>
+                </div>
+              </div>
+            </section>
+
+            <div className="flex items-center justify-center px-6 py-10 md:px-10">
+              <div className="auth-card w-full max-w-md text-center">
+                <div className="mb-6 flex justify-center">
+                  <FileDriveLogo size="lg" />
+                </div>
+                <h2 className="mb-2 text-[22px] font-medium tracking-tight">
+                  <span className="text-slate-900">Next</span>
+                  <span className="text-indigo-500">Drive</span>
+                </h2>
+                <p className="text-[13px] text-slate-500">Sign in to continue</p>
+
+                <SignInButton mode="modal">
+                  <Button className="auth-cta mt-8 h-12 w-full text-[15px] font-medium">Continue</Button>
+                </SignInButton>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <h1 className="mb-2 text-4xl font-black tracking-tight">
-        <span className="text-slate-950">Next</span>
-        <span className="bg-gradient-to-r from-cyan-600 to-emerald-500 bg-clip-text text-transparent">
-          Drive
-        </span>
-      </h1>
-      <p className="text-gray-500 mb-8">Store and share your files securely</p>
-      <SignInButton mode="modal">
-        <Button className="primary-action w-full px-6 py-5 text-lg">
-          Sign In to Continue
-        </Button>
-      </SignInButton>
-      <p className="text-xs text-gray-400 mt-6">Secure authentication by Clerk</p>
-    </div>
-  </div>
-</Unauthenticated>
+      </Unauthenticated>
     </>
   );
 }

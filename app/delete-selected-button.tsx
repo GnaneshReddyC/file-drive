@@ -11,7 +11,7 @@ export function DeleteSelectedButton({ onClick }: DeleteSelectedButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-10 min-w-12 shrink-0 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/10 px-3 text-destructive transition hover:bg-destructive/20 focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="inline-flex h-10 min-w-12 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 transition hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-ring/50"
       aria-label="Delete selected files"
       title="Delete selected files"
     >

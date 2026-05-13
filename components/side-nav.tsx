@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NavItem {
   name: string;
@@ -47,15 +48,16 @@ export function SideNav() {
 
     return (
       <Button
-        variant={isActive ? "default" : "ghost"}
+        variant="ghost"
         onClick={() => router.push(item.href)}
         className={cn(
-          "h-10 w-full justify-start gap-3 rounded-lg px-3 text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-          isActive && "bg-slate-900 text-white shadow-sm hover:bg-slate-900 hover:text-white"
+          "side-nav-btn relative h-10 w-10 justify-center rounded-md px-0 text-slate-400",
+          isActive && "side-nav-btn-active text-indigo-600"
         )}
       >
+        <span className={cn("absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r", isActive ? "bg-[#6366f1]" : "bg-transparent")} />
         <Icon className="h-5 w-5" />
-        <span>{item.name}</span>
+        <span className="sr-only">{item.name}</span>
       </Button>
     );
   };
@@ -64,30 +66,47 @@ export function SideNav() {
     <>
       <div
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-slate-200 z-40 flex flex-col",
-          "w-64"
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] border-r z-40 flex flex-col",
+          "side-nav-shell w-16"
         )}
       >
         <div className="h-4 border-b border-slate-200">
         </div>
 
-        <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          <div className="px-3 pb-2 pt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+        <TooltipProvider delayDuration={80}>
+        <div className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
+          <div className="px-1 pb-2 pt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">
             Files
           </div>
           {primaryItems.map((item) => {
             const isActive = currentHref === item.href;
-            return <NavButton key={item.name} item={item} isActive={isActive} />;
+            return (
+              <Tooltip key={item.name}>
+                <TooltipTrigger asChild>
+                  <div><NavButton item={item} isActive={isActive} /></div>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={10} className="bg-[#20202b] text-[#e9e9f2]">
+                  {item.name}
+                </TooltipContent>
+              </Tooltip>
+            );
           })}
           <div className="my-3 border-t border-slate-200" />
-          <div className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-            Categories
-          </div>
           {categoryItems.map((item) => {
             const isActive = pathname === item.href;
-            return <NavButton key={item.name} item={item} isActive={isActive} />;
+            return (
+              <Tooltip key={item.name}>
+                <TooltipTrigger asChild>
+                  <div><NavButton item={item} isActive={isActive} /></div>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={10} className="bg-[#20202b] text-[#e9e9f2]">
+                  {item.name}
+                </TooltipContent>
+              </Tooltip>
+            );
           })}
         </div>
+        </TooltipProvider>
       </div>
     </>
   );

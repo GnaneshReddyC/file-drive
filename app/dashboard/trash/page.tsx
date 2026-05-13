@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { TrashFileCard } from "@/app/trash-file-card";
 import { MultiSelectToggle } from "@/app/multi-select-toggle";
 import { EmptySketch } from "@/app/empty-sketch";
+import Link from "next/link";
 import { RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -167,7 +168,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={handlePermanentDeleteSelected}
-                    className="inline-flex h-10 min-w-12 shrink-0 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/10 px-3 text-destructive transition hover:bg-destructive/20 focus-visible:ring-2 focus-visible:ring-ring/50"
+                    className="inline-flex h-10 min-w-12 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 text-red-600 transition hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-ring/50"
                     aria-label="Delete selected files forever"
                     title="Delete selected files forever"
                   >
@@ -180,10 +181,21 @@ export default function TrashPage() {
         </div>
 
         {deletedFiles?.length === 0 ? (
-          <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-            <EmptySketch tone="trash" />
-            <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">Trash is empty</h2>
-            <p className="text-gray-500 text-lg">Deleted files will appear here.</p>
+
+          <div className="flex min-h-[60vh] items-center justify-center px-4">
+            <div className="empty-state w-full max-w-xl px-8 py-12 text-center">
+              <EmptySketch tone="trash" />
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900">Trash is empty</h2>
+              <p className="mt-3 text-sm text-slate-600">Deleted files will appear here for 30 days before permanent removal.</p>
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                >
+                  Go to files
+                </Link>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -206,3 +218,4 @@ export default function TrashPage() {
     </div>
   );
 }
+

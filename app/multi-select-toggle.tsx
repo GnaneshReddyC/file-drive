@@ -17,7 +17,7 @@ export function MultiSelectToggle({ enabled, selectedCount, onToggle }: MultiSel
       onClick={onToggle}
       className={`relative inline-flex h-10 min-w-12 shrink-0 items-center justify-center rounded-lg border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-ring/50 ${
         enabled
-          ? "border-slate-200 bg-slate-900 text-white"
+          ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
           : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-950"
       }`}
       aria-label={enabled ? "Turn off multi-select" : "Turn on multi-select"}

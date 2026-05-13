@@ -16,7 +16,7 @@ export function FileViewToggle({ value, onChange }: FileViewToggleProps) {
   ];
 
   return (
-    <div className="inline-flex h-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <div className="inline-flex h-10 shrink-0 overflow-hidden rounded-lg border border-indigo-200 bg-indigo-50/50 shadow-sm">
       {options.map((option) => {
         const Icon = option.icon;
         const isSelected = value === option.value;
@@ -26,10 +26,10 @@ export function FileViewToggle({ value, onChange }: FileViewToggleProps) {
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
-            className={`flex h-full min-w-12 items-center justify-center gap-1.5 border-r border-slate-200 px-3 text-sm transition last:border-r-0 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            className={`flex h-full min-w-12 items-center justify-center gap-1.5 border-r border-indigo-200 px-3 text-sm transition last:border-r-0 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-indigo-300 ${
               isSelected
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                ? "bg-indigo-500 text-white"
+                : "text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800"
             }`}
             aria-label={option.label}
             aria-pressed={isSelected}

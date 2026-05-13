@@ -9,7 +9,7 @@ export function FileDriveLogo({ size = "sm" }: FileDriveLogoProps) {
 
   return (
     <div
-      className={`relative flex shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-sm ${
+      className={`relative flex shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm ${
         isLarge ? "size-16" : "size-10"
       }`}
       aria-hidden="true"

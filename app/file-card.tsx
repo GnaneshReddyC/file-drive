@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -68,24 +68,24 @@ function getFileColor(fileType: string, fileName: string) {
   const ext = fileName.split(".").pop()?.toLowerCase();
   
   if (fileType?.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext ?? "")) {
-    return "from-rose-400 to-pink-600";
+    return "bg-[#eef2ff]";
   }
   if (fileType?.startsWith("video/") || ["mp4", "mov", "avi", "mkv", "webm"].includes(ext ?? "")) {
-    return "from-violet-400 to-purple-600";
+    return "bg-[#e0e7ff]";
   }
   if (fileType?.startsWith("audio/") || ["mp3", "wav", "flac", "aac", "ogg"].includes(ext ?? "")) {
-    return "from-amber-400 to-orange-500";
+    return "bg-[#fef3c7]";
   }
   if (fileType === "application/pdf" || ext === "pdf") {
-    return "from-red-400 to-rose-600";
+    return "bg-[#fee2e2]";
   }
   if (fileType?.startsWith("text/") || ["txt", "md", "doc", "docx"].includes(ext ?? "")) {
-    return "from-sky-400 to-blue-600";
+    return "bg-[#dbeafe]";
   }
   if (["zip", "rar", "7z", "tar", "gz"].includes(ext ?? "")) {
-    return "from-gray-500 to-gray-700";
+    return "bg-[#e5e7eb]";
   }
-  return "from-emerald-400 to-teal-600";
+  return "bg-[#dcfce7]";
 }
 
 function getFileTypeLabel(file: FileDocument) {
@@ -94,20 +94,19 @@ function getFileTypeLabel(file: FileDocument) {
 }
 
 function formatFileSize(size: number) {
-  if (!size) return "0 B";
+  if (!size) return "0B";
 
   const units = ["B", "KB", "MB", "GB"];
   const unitIndex = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
   const value = size / 1024 ** unitIndex;
 
-  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)}${units[unitIndex]}`;
 }
 
 function formatFileDate(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
-    year: "numeric",
   }).format(new Date(timestamp));
 }
 
@@ -296,41 +295,24 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+            className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label={`More actions for ${file.name}`}
             title="More actions"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-48 border-slate-200 bg-white text-slate-800 shadow-lg">
           <DropdownMenuItem
-            className="cursor-pointer flex items-center gap-2"
-            onClick={() => window.open(file.url ?? "#", "_blank")}
-          >
-            <Download className="w-4 h-4" />
-            Download
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer flex items-center gap-2"
+            className="cursor-pointer flex items-center gap-2 focus:bg-slate-100 focus:text-slate-900"
             onClick={() => setShareDialogOpen(true)}
           >
             <Share2 className="w-4 h-4" />
             Share link
           </DropdownMenuItem>
-          {canPin && (
-            <DropdownMenuItem
-              className="cursor-pointer flex items-center gap-2"
-              onClick={handleTogglePin}
-              disabled={isPinning}
-            >
-              {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
-              {isPinned ? "Unpin" : "Pin"}
-            </DropdownMenuItem>
-          )}
           {canRename && (
             <DropdownMenuItem
-              className="cursor-pointer flex items-center gap-2"
+              className="cursor-pointer flex items-center gap-2 focus:bg-slate-100 focus:text-slate-900"
               onClick={() => handleRenameOpenChange(true)}
             >
               <Pencil className="w-4 h-4" />
@@ -339,7 +321,7 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
           )}
           {canMove && (
             <DropdownMenuItem
-              className="cursor-pointer flex items-center gap-2"
+              className="cursor-pointer flex items-center gap-2 focus:bg-slate-100 focus:text-slate-900"
               onClick={() => {
                 if (file.folderId) {
                   void handleMoveFile(null);
@@ -358,7 +340,7 @@ function FileDropdownMenu({ file }: { file: FileDocument }) {
           )}
           {canDelete && (
             <DropdownMenuItem
-              className="text-red-500 focus:text-red-500 cursor-pointer flex items-center gap-2"
+              className="cursor-pointer flex items-center gap-2 text-red-500 focus:bg-red-50 focus:text-red-600"
               onClick={() => handleDeleteClick(fileId)}
             >
               <Trash2 className="w-4 h-4" />
@@ -503,7 +485,14 @@ type SelectableFileProps = {
 
 export function FileCard({ file, isSelecting = false, isSelected = false, onSelectionChange }: SelectableFileProps) {
   const toggleFavorite = useMutation(api.files.toggleFavorite);
+  const togglePin = useMutation(api.files.togglePin);
+  const getFileDownloadUrl = useMutation(api.files.getFileDownloadUrl);
+  const { membership, organization } = useOrganization();
+  const orgId = organization?.id || "";
+  const canPin = !orgId || membership?.role === "org:admin";
   const [isFavorited, setIsFavorited] = useState(file.isFavorite);
+  const [isPinned, setIsPinned] = useState(Boolean(file.isPinned));
+  const [isPinning, setIsPinning] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
@@ -517,12 +506,40 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
     }
   };
 
+  const handleTogglePin = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setIsPinning(true);
+      const nextState = await togglePin({ id: file._id as Id<"files"> });
+      setIsPinned(nextState);
+      toast.success(nextState ? "File pinned" : "File unpinned");
+    } catch {
+      toast.error("Failed to update pin");
+    } finally {
+      setIsPinning(false);
+    }
+  };
+
+  const handleDownload = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      const downloadUrl = await getFileDownloadUrl({ id: file._id as Id<"files"> });
+      if (!downloadUrl) {
+        toast.error("Download URL is unavailable for this file");
+        return;
+      }
+      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error("Failed to download file", {
+        description: getToastErrorMessage(error),
+      });
+    }
+  };
+
   return (
     <>
       <div
-        className={`file-card group relative cursor-pointer overflow-hidden border border-gray-200 bg-white ${
-          isSelected ? "ring-2 ring-primary" : ""
-        }`}
+        className={`file-card file-card-neo group relative cursor-pointer overflow-hidden border ${isSelected ? "ring-1 ring-[#6366f1]" : ""}`}
         onClick={() => {
           if (isSelecting) {
             onSelectionChange?.(file);
@@ -538,38 +555,65 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
               event.stopPropagation();
               onSelectionChange?.(file);
             }}
-            className="absolute left-2 top-2 z-10 rounded-md bg-black/55 p-1.5 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75"
+            className="absolute left-2 top-2 z-10 rounded-md bg-white/85 p-1.5 text-slate-700 transition hover:bg-white"
             aria-label={isSelected ? "Deselect file" : "Select file"}
             title={isSelected ? "Deselect file" : "Select file"}
           >
             {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
           </button>
         )}
-        <div className={`h-1 w-full bg-gradient-to-r ${getFileColor(file.type, file.name)}`} />
-        <div className={`flex items-center justify-center h-24 bg-gradient-to-br ${getFileColor(file.type, file.name)} opacity-90 relative`}>
-          <div className="text-white">{getFileIcon(file.type, file.name)}</div>
-          {file.isPinned && (
-            <div className="absolute left-2 top-2 z-10 rounded-md bg-white/90 p-1.5 text-slate-700 shadow-sm backdrop-blur-sm">
-              <Pin className="w-4 h-4 fill-slate-700" />
+        <div className={`relative flex h-24 items-center justify-center ${getFileColor(file.type, file.name)}`}>
+          <span className="absolute right-2 top-2 rounded border border-indigo-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-indigo-600">
+            {getFileTypeLabel(file)}
+          </span>
+          <div className="text-indigo-500">{getFileIcon(file.type, file.name)}</div>
+          {isPinned && (
+            <div className="absolute left-2 top-2 z-10 rounded-md border border-indigo-200 bg-indigo-50 p-1.5 text-indigo-600 shadow-sm">
+              <Pin className="w-4 h-4 fill-indigo-600 text-indigo-600" />
             </div>
           )}
-          <button
-            onClick={handleToggleFavorite}
-            className="absolute right-2 top-2 z-10 rounded-md bg-white/90 p-1.5 text-slate-500 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-yellow-500"
-          >
-            <Star className={`w-4 h-4 ${isFavorited ? "fill-yellow-500 text-yellow-500" : ""}`} />
-          </button>
+          
         </div>
         <div className="flex items-start justify-between gap-2 p-3">
           <div className="min-w-0">
-            <p className="text-gray-800 text-xs font-medium truncate" title={file.name}>
+            <p className="truncate text-[14px] font-medium text-slate-800" title={file.name}>
               {file.name}
             </p>
-            <p className="mt-1 text-[11px] text-slate-400">
-              {formatFileSize(file.size)} · {formatFileDate(file._creationTime)}
+            <p className="mt-1 truncate text-[12px] text-slate-500" title={formatFileSize(file.size)}>
+              {formatFileSize(file.size)}
             </p>
           </div>
-          <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+            {canPin && (
+              <button
+                onClick={handleTogglePin}
+                disabled={isPinning}
+                className="rounded p-1.5 text-slate-400 transition-colors duration-150 hover:text-indigo-500 disabled:opacity-50"
+                aria-label={isPinned ? "Unpin file" : "Pin file"}
+                title={isPinned ? "Unpin file" : "Pin file"}
+              >
+                {isPinned ? (
+                  <PinOff className="w-4 h-4 text-indigo-500" />
+                ) : (
+                  <Pin className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={handleDownload}
+              className="rounded p-1.5 text-slate-400 transition-colors duration-150 hover:text-indigo-500"
+              aria-label="Download file"
+              title="Download file"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleToggleFavorite}
+              className="rounded p-1.5 text-slate-400 transition-colors duration-150 hover:text-indigo-500"
+              aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Star className={`w-4 h-4 ${isFavorited ? "fill-indigo-500 text-indigo-500" : ""}`} />
+            </button>
             <FileDropdownMenu file={file} />
           </div>
         </div>
@@ -582,7 +626,14 @@ export function FileCard({ file, isSelecting = false, isSelected = false, onSele
 
 export function FileListItem({ file, isSelecting = false, isSelected = false, onSelectionChange }: SelectableFileProps) {
   const toggleFavorite = useMutation(api.files.toggleFavorite);
+  const togglePin = useMutation(api.files.togglePin);
+  const getFileDownloadUrl = useMutation(api.files.getFileDownloadUrl);
+  const { membership, organization } = useOrganization();
+  const orgId = organization?.id || "";
+  const canPin = !orgId || membership?.role === "org:admin";
   const [isFavorited, setIsFavorited] = useState(file.isFavorite);
+  const [isPinned, setIsPinned] = useState(Boolean(file.isPinned));
+  const [isPinning, setIsPinning] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const handleToggleFavorite = async (event: React.MouseEvent) => {
@@ -596,12 +647,40 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
     }
   };
 
+  const handleTogglePin = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      setIsPinning(true);
+      const nextState = await togglePin({ id: file._id as Id<"files"> });
+      setIsPinned(nextState);
+      toast.success(nextState ? "File pinned" : "File unpinned");
+    } catch {
+      toast.error("Failed to update pin");
+    } finally {
+      setIsPinning(false);
+    }
+  };
+
+  const handleDownload = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      const downloadUrl = await getFileDownloadUrl({ id: file._id as Id<"files"> });
+      if (!downloadUrl) {
+        toast.error("Download URL is unavailable for this file");
+        return;
+      }
+      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error("Failed to download file", {
+        description: getToastErrorMessage(error),
+      });
+    }
+  };
+
   return (
     <>
       <div
-        className={`group grid min-h-14 grid-cols-[minmax(0,1fr)_72px] items-center gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2 transition hover:border-gray-300 hover:bg-gray-50 sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px] dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-900 ${
-          isSelected ? "ring-2 ring-primary" : ""
-        }`}
+        className={`file-list-row group grid min-h-14 grid-cols-[minmax(0,1fr)_72px] items-center gap-4 rounded-lg border px-3 py-2 transition-all duration-150 sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px] ${isSelected ? "ring-1 ring-[#6366f1]" : ""}`}
         onClick={() => {
           if (isSelecting) {
             onSelectionChange?.(file);
@@ -618,35 +697,54 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
                 event.stopPropagation();
                 onSelectionChange?.(file);
               }}
-              className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+              className="rounded-md p-1 text-slate-400 transition-colors duration-150 hover:text-indigo-500"
               aria-label={isSelected ? "Deselect file" : "Select file"}
               title={isSelected ? "Deselect file" : "Select file"}
             >
               {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             </button>
           )}
-          <div className={`flex size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${getFileColor(file.type, file.name)} text-white [&_svg]:size-5`}>
+          <div className={`flex size-9 shrink-0 items-center justify-center rounded-md ${getFileColor(file.type, file.name)} text-indigo-500 [&_svg]:size-5`}>
             {getFileIcon(file.type, file.name)}
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-1.5">
-              {file.isPinned && <Pin className="size-3.5 shrink-0 fill-slate-500 text-slate-500" />}
-              <p className="truncate text-sm font-medium text-gray-900 dark:text-white" title={file.name}>
+              {isPinned && <Pin className="size-3.5 shrink-0 fill-indigo-600 text-indigo-600" />}
+              <p className="truncate text-[14px] font-medium text-slate-800" title={file.name}>
                 {file.name}
               </p>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{getFileTypeLabel(file)}</p>
+            <p className="text-[12px] text-slate-500">{getFileTypeLabel(file)}</p>
           </div>
         </div>
-        <p className="hidden text-sm text-gray-500 sm:block dark:text-gray-400">{formatFileSize(file.size)}</p>
-        <p className="hidden text-sm text-gray-500 md:block dark:text-gray-400">{formatFileDate(file._creationTime)}</p>
-        <div className="flex items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+        <p className="hidden text-[12px] text-slate-500 sm:block">{formatFileSize(file.size)}</p>
+        <p className="hidden text-[12px] text-slate-500 md:block">{formatFileDate(file._creationTime)}</p>
+        <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100" onClick={(event) => event.stopPropagation()}>
+          {canPin && (
+            <button
+              onClick={handleTogglePin}
+              disabled={isPinning}
+              className="rounded-md p-1.5 text-slate-400 transition-colors duration-150 hover:text-indigo-500 disabled:opacity-50"
+              aria-label={isPinned ? "Unpin file" : "Pin file"}
+              title={isPinned ? "Unpin file" : "Pin file"}
+            >
+              {isPinned ? <PinOff className="w-4 h-4 text-indigo-500" /> : <Pin className="w-4 h-4" />}
+            </button>
+          )}
+          <button
+            onClick={handleDownload}
+            className="rounded-md p-1.5 text-slate-400 transition-colors duration-150 hover:text-indigo-500"
+            aria-label="Download file"
+            title="Download file"
+          >
+            <Download className="w-4 h-4" />
+          </button>
           <button
             onClick={handleToggleFavorite}
-            className="rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            className="rounded-md p-1.5 text-slate-400 transition-colors duration-150 hover:text-indigo-500"
             aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
           >
-            <Star className={`w-4 h-4 ${isFavorited ? "fill-yellow-500 text-yellow-500" : ""}`} />
+            <Star className={`w-4 h-4 ${isFavorited ? "fill-indigo-500 text-indigo-500" : ""}`} />
           </button>
           <FileDropdownMenu file={file} />
         </div>
@@ -656,3 +754,8 @@ export function FileListItem({ file, isSelecting = false, isSelected = false, on
     </>
   );
 }
+
+
+
+
+

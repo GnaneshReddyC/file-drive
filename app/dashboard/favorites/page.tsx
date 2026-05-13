@@ -23,7 +23,7 @@ import { FileIcon, ImageIcon, FileTextIcon, VideoIcon, MusicIcon, MoreVertical, 
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
 import { toast } from "sonner";
-import { EmptySketch } from "@/app/empty-sketch";
+import { SectionEmptyState } from "@/app/section-empty-state";
 import { FileCard as DriveFileCard, FileListItem } from "@/app/file-card";
 import { FileViewMode, FileViewToggle } from "@/app/file-view-toggle";
 import { DeleteSelectedButton } from "@/app/delete-selected-button";
@@ -145,19 +145,12 @@ function FileCard({ file }: { file: FileDocument }) {
 
 function EmptyFavoritesState() {
   return (
-    <div className="flex min-h-[70vh] flex-col items-center justify-center px-6">
-      <div className="empty-state mx-auto max-w-2xl px-10 py-14 text-center">
-        <EmptySketch tone="favorite" />
-        <h2 className="mb-3 text-4xl font-extrabold tracking-tight text-slate-950">
-          No favorites yet
-        </h2>
-        <p className="text-gray-500 mb-8 text-lg">
-          Star your favorite files and they will appear here.
-          <br />
-          <span className="text-sm">Click the star icon on any file to add it to favorites.</span>
-        </p>
-      </div>
-    </div>
+    <SectionEmptyState
+      variant="favorites"
+      title="No favorites yet"
+      subtitle="Starred files will be collected here for quick access."
+      hint="☆ Mark any file as favorite to pin it here."
+    />
   );
 }
 

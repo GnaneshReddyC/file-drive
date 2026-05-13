@@ -24,7 +24,7 @@ export default function RootLayout({
             <Header />
             <div className="flex">
               <AuthSideNav />
-              <main className="flex-1 md:ml-64">
+              <main className="flex-1 md:ml-16">
                 {children}
               </main>
             </div>

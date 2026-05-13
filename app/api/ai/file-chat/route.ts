@@ -20,6 +20,17 @@ export const runtime = "nodejs";
 
 const TEXT_EXTENSIONS = new Set(["txt", "md", "json", "xml", "css", "js", "ts", "tsx", "jsx", "csv", "log"]);
 const OFFICE_EXTENSIONS = new Set(["pptx", "docx", "xlsx"]);
+const FREE_TEXT_FALLBACK_MODELS = [
+  "qwen/qwen3-next-80b-a3b-instruct:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "mistralai/mistral-small-3.2-24b-instruct:free",
+];
+const FREE_VISION_FALLBACK_MODELS = [
+  "google/gemma-4-26b-a4b-it:free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-nano-12b-v2-vl:free",
+];
 
 function getExtension(name: string) {
   const parts = name.split(".");
@@ -48,8 +59,11 @@ function getResponseText(data: unknown) {
   return choices
     .map((choice) => {
       if (!choice || typeof choice !== "object") return "";
-      const message = (choice as { message?: { content?: unknown } }).message;
-      const content = message?.content;
+      const { message, text } = choice as {
+        message?: { content?: unknown };
+        text?: unknown;
+      };
+      const content = message?.content ?? text;
 
       if (typeof content === "string") return content;
       if (!Array.isArray(content)) return "";
@@ -57,7 +71,13 @@ function getResponseText(data: unknown) {
       return content
         .map((part) => {
           if (!part || typeof part !== "object") return "";
-          return (part as { text?: unknown }).text;
+          const { text, type } = part as { text?: unknown; type?: unknown };
+          if (typeof text === "string") return text;
+          if (type === "text" || type === "output_text") {
+            const outputText = (part as { content?: unknown }).content;
+            return typeof outputText === "string" ? outputText : "";
+          }
+          return "";
         })
         .filter((text): text is string => typeof text === "string")
         .join("\n");
@@ -65,6 +85,76 @@ function getResponseText(data: unknown) {
     .filter(Boolean)
     .join("\n")
     .trim();
+}
+
+function getEmptyResponseMessage(data: unknown) {
+  if (!data || typeof data !== "object") {
+    return "The AI provider returned an empty response.";
+  }
+
+  const { choices, model, id } = data as {
+    choices?: unknown;
+    model?: unknown;
+    id?: unknown;
+  };
+  const choice = Array.isArray(choices) && choices[0] && typeof choices[0] === "object" ? choices[0] : null;
+  const finishReason = choice
+    ? (choice as { finish_reason?: unknown; native_finish_reason?: unknown }).finish_reason ??
+      (choice as { finish_reason?: unknown; native_finish_reason?: unknown }).native_finish_reason
+    : undefined;
+  const details = [
+    typeof model === "string" ? `model: ${model}` : "",
+    typeof finishReason === "string" ? `finish reason: ${finishReason}` : "",
+    typeof id === "string" ? `request id: ${id}` : "",
+  ].filter(Boolean);
+
+  return `The AI provider returned an empty response${details.length ? ` (${details.join(", ")})` : ""}. Please try again.`;
+}
+
+function getProviderErrorMessage(data: unknown) {
+  if (!data || typeof data !== "object") return "The OpenRouter request failed.";
+
+  const error = (data as { error?: unknown }).error;
+  if (!error || typeof error !== "object") return "The OpenRouter request failed.";
+
+  const message = (error as { message?: unknown }).message;
+  return typeof message === "string" && message.trim() ? message : "The OpenRouter request failed.";
+}
+
+function isRetryableProviderError(status: number, message: string) {
+  const lowerMessage = message.toLowerCase();
+  return (
+    status >= 500 ||
+    lowerMessage.includes("provider returned error") ||
+    lowerMessage.includes("provider error") ||
+    lowerMessage.includes("upstream") ||
+    lowerMessage.includes("overloaded") ||
+    lowerMessage.includes("rate limit")
+  );
+}
+
+function isFallbackEligibleProviderError(status: number, message: string) {
+  const lowerMessage = message.toLowerCase();
+  return (
+    status === 400 ||
+    status === 404 ||
+    status === 422 ||
+    lowerMessage.includes("no endpoints found") ||
+    lowerMessage.includes("requested output modalities") ||
+    lowerMessage.includes("model not found") ||
+    lowerMessage.includes("not supported") ||
+    lowerMessage.includes("provider unavailable")
+  );
+}
+
+function getOpenRouterModels(parts: Array<Record<string, unknown>>) {
+  const configuredModelRaw = process.env.OPENROUTER_MODEL?.trim() ?? "";
+  const hasImage = parts.some((part) => part.type === "image_url");
+  const fallbacks = hasImage ? FREE_VISION_FALLBACK_MODELS : FREE_TEXT_FALLBACK_MODELS;
+  const configuredModel =
+    configuredModelRaw && configuredModelRaw !== "openrouter/free" ? configuredModelRaw : "";
+
+  return Array.from(new Set([configuredModel, ...fallbacks])).filter(Boolean);
 }
 
 function decodeXmlText(value: string) {
@@ -355,8 +445,12 @@ export async function POST(request: Request) {
   return await askOpenRouter(apiKey, parts, false);
 }
 
-async function askOpenRouter(apiKey: string, parts: Array<Record<string, unknown>>, isDriveChat: boolean) {
-  const model = process.env.OPENROUTER_MODEL ?? "openrouter/free";
+async function callOpenRouter(
+  apiKey: string,
+  model: string,
+  parts: Array<Record<string, unknown>>,
+  isDriveChat: boolean
+) {
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -380,18 +474,81 @@ async function askOpenRouter(apiKey: string, parts: Array<Record<string, unknown
           content: parts,
         },
       ],
-      max_tokens: 700,
+      max_completion_tokens: 1200,
+      reasoning: {
+        effort: "none",
+        exclude: true,
+      },
     }),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    return Response.json(
-      { error: data?.error?.message ?? "The OpenRouter request failed." },
-      { status: response.status }
-    );
+  const responseText = await response.text();
+  let data: unknown = null;
+  try {
+    data = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    data = {
+      error: {
+        message: responseText || "The OpenRouter request failed with a non-JSON response.",
+      },
+    };
   }
 
-  return Response.json({ answer: getResponseText(data) || "I could not generate an answer." });
+  return { data, response };
+}
+
+async function askOpenRouter(apiKey: string, parts: Array<Record<string, unknown>>, isDriveChat: boolean) {
+  const failures: string[] = [];
+  const attemptWithModels = async (attemptParts: Array<Record<string, unknown>>) => {
+    const models = getOpenRouterModels(attemptParts);
+
+    for (const model of models) {
+      const { data, response } = await callOpenRouter(apiKey, model, attemptParts, isDriveChat);
+
+      if (!response.ok) {
+        const message = getProviderErrorMessage(data);
+        failures.push(`${model}: ${message}`);
+
+        if (isRetryableProviderError(response.status, message) || isFallbackEligibleProviderError(response.status, message)) {
+          continue;
+        }
+
+        return Response.json({ error: message }, { status: response.status });
+      }
+
+      const answer = getResponseText(data);
+      if (answer) {
+        return Response.json({ answer });
+      }
+
+      failures.push(`${model}: ${getEmptyResponseMessage(data)}`);
+    }
+
+    return null;
+  };
+
+  const firstAttempt = await attemptWithModels(parts);
+  if (firstAttempt) return firstAttempt;
+
+  const hasInlineImage = parts.some((part) => part.type === "image_url");
+  if (hasInlineImage) {
+    const textOnlyParts = parts.filter((part) => part.type !== "image_url");
+    if (textOnlyParts.length > 0) {
+      const secondAttempt = await attemptWithModels(textOnlyParts);
+      if (secondAttempt) return secondAttempt;
+      failures.push("text-only retry: all fallback models failed");
+    }
+  }
+
+  return Response.json(
+    {
+      error: failures.length
+        ? `The AI providers did not return a usable answer. ${failures
+            .slice(-2)
+            .join(" | ")}`
+        : "The AI providers did not return a usable answer. Please try again in a moment.",
+      details: failures.slice(-3),
+    },
+    { status: 502 }
+  );
 }

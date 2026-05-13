@@ -337,7 +337,7 @@ function DashboardContent() {
                   setBulkMoveDialogOpen(true);
                 }}
                 disabled={isBulkMoving}
-                className="size-10 rounded-lg border-slate-200 bg-white p-0 shadow-sm"
+                className="size-10 rounded-lg border-indigo-200 bg-indigo-50 p-0 text-indigo-700 shadow-sm transition hover:bg-indigo-100"
                 aria-label={currentFolderId ? "Move selected files out" : "Move selected files"}
                 title={currentFolderId ? "Move out" : "Move"}
               >
@@ -391,18 +391,18 @@ function DashboardContent() {
                 className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_72px] items-center gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-gray-300 hover:bg-gray-50 sm:grid-cols-[minmax(0,1fr)_88px_72px] md:grid-cols-[minmax(0,1fr)_88px_110px_72px]"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-slate-900 text-white">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-500">
                     <Folder className="size-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900" title={folder.name}>
+                    <p className="truncate text-sm font-medium text-slate-800" title={folder.name}>
                       {folder.name}
                     </p>
-                    <p className="text-xs text-gray-500">Folder</p>
+                    <p className="text-xs text-slate-500">Folder</p>
                   </div>
                 </div>
-                <p className="hidden text-sm text-gray-500 sm:block">--</p>
-                <p className="hidden text-sm text-gray-500 md:block">--</p>
+                <p className="hidden text-sm text-slate-500 sm:block">--</p>
+                <p className="hidden text-sm text-slate-500 md:block">--</p>
                 <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
                   <FolderActionsMenu
                     folder={folder}
@@ -694,20 +694,23 @@ function FolderCard({
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") onOpen(folder._id);
       }}
-      className="file-card group relative cursor-pointer overflow-hidden border border-gray-200 bg-white text-left"
+      className="file-card group relative cursor-pointer overflow-hidden border border-indigo-100 bg-white text-left"
     >
-      <div className="h-1 w-full bg-gradient-to-r from-amber-300 to-orange-500" />
-      <div className="relative flex h-24 items-center justify-center bg-gradient-to-br from-amber-300 to-orange-500 opacity-90">
-        <div className="text-white">
+      <div className="h-1 w-full bg-gradient-to-r from-indigo-300 to-blue-500" />
+      <div className="relative flex h-24 items-center justify-center bg-gradient-to-br from-indigo-100 to-blue-100">
+        <div className="text-indigo-500">
           <Folder className="size-9" />
         </div>
+        <span className="absolute right-2 top-2 rounded border border-indigo-200 bg-white/90 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-indigo-600">
+          Folder
+        </span>
       </div>
       <div className="flex items-start justify-between gap-2 p-3">
         <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-gray-800" title={folder.name}>
+          <p className="truncate text-[14px] font-medium text-slate-800" title={folder.name}>
             {folder.name}
           </p>
-          <p className="mt-1 text-[11px] text-slate-400">Folder</p>
+          <p className="mt-1 text-[12px] text-slate-500">Open folder</p>
         </div>
         <div onClick={(event) => event.stopPropagation()}>
           <FolderActionsMenu folder={folder} onRename={onRename} onDelete={onDelete} />

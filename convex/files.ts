@@ -575,6 +575,27 @@ export const getFileUrl = query({
   },
 });
 
+export const getFileDownloadUrl = mutation({
+  args: { id: v.id("files") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const file = await ctx.db.get(args.id);
+    if (!file || file.isDeleted) throw new Error("File not found");
+
+    if (!canReadFile(identity, file)) {
+      throw new Error("You do not have permission to download this file");
+    }
+
+    if (file.fileId && file.fileId !== "") {
+      return await ctx.storage.getUrl(file.fileId);
+    }
+
+    return file.url || null;
+  },
+});
+
 export const createShareLink = mutation({
   args: {
     id: v.id("files"),
