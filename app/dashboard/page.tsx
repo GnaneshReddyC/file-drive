@@ -88,7 +88,7 @@ function DashboardContent() {
   const [isRenamingFolder, setIsRenamingFolder] = useState(false);
   const [isDeletingFolder, setIsDeletingFolder] = useState(false);
   const [isBulkMoving, setIsBulkMoving] = useState(false);
-  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, deleteSelectedFiles, moveSelectedFiles } = useFileMultiSelect();
+  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, selectAllFiles, clearSelectedFiles, deleteSelectedFiles, moveSelectedFiles } = useFileMultiSelect();
   const files = useQuery(api.files.getFiles, { orgId, folderId: currentFolderId });
   const folders = useQuery(api.files.getFolders, { orgId, parentId: currentFolderId });
   const allFolders = useQuery(api.files.getAllFolders, { orgId });
@@ -109,6 +109,9 @@ function DashboardContent() {
     if (searchQuery && !folder.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+  const selectableFileIds = filteredFiles?.map((file) => file._id) ?? [];
+  const hasSelectableFiles = selectableFileIds.length > 0;
+  const areAllSelectableFilesSelected = hasSelectableFiles && selectableFileIds.every((id) => selectedIds.has(id));
 
   const openFolder = (folderId: Id<"folders">) => {
     router.push(`/dashboard?folder=${folderId}`);
@@ -324,6 +327,17 @@ function DashboardContent() {
             </Button>
             <FileViewToggle value={viewMode} onChange={setViewMode} />
             <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+            {hasSelectableFiles && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!isSelecting}
+                onClick={() => (areAllSelectableFilesSelected ? clearSelectedFiles() : selectAllFiles(selectableFileIds))}
+                className="h-10 rounded-lg border-slate-200 bg-white px-3 font-semibold shadow-sm"
+              >
+                {areAllSelectableFilesSelected ? "Clear" : "Select all"}
+              </Button>
+            )}
             {selectedIds.size > 0 && (
               <Button
                 type="button"

@@ -31,6 +31,9 @@ export default function TrashPage() {
   const [deleting, setDeleting] = useState<Id<"files"> | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<Id<"files">>>(new Set());
+  const selectableFileIds = deletedFiles?.map((file) => file._id) ?? [];
+  const hasSelectableFiles = selectableFileIds.length > 0;
+  const areAllSelectableFilesSelected = hasSelectableFiles && selectableFileIds.every((id) => selectedIds.has(id));
 
   const toggleSelecting = () => {
     setIsSelecting((current) => {
@@ -154,6 +157,16 @@ export default function TrashPage() {
           {deletedFiles.length > 0 && (
             <div className="flex items-center gap-3">
               <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+              {hasSelectableFiles && (
+                <button
+                  type="button"
+                  disabled={!isSelecting}
+                  onClick={() => setSelectedIds(areAllSelectableFilesSelected ? new Set() : new Set(selectableFileIds))}
+                  className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  {areAllSelectableFilesSelected ? "Clear" : "Select all"}
+                </button>
+              )}
               {selectedIds.size > 0 && (
                 <>
                   <button

@@ -9,6 +9,7 @@ import { DeleteSelectedButton } from "@/app/delete-selected-button";
 import { MultiSelectToggle } from "@/app/multi-select-toggle";
 import { useFileMultiSelect } from "@/app/use-file-multi-select";
 import { EmptySketch } from "@/app/empty-sketch";
+import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
 import { useState } from "react";
 
@@ -16,7 +17,7 @@ export default function VideosPage() {
   const { organization } = useOrganization();
   const orgId = organization?.id || "";
   const [viewMode, setViewMode] = useState<FileViewMode>("grid");
-  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, deleteSelectedFiles } = useFileMultiSelect();
+  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, selectAllFiles, clearSelectedFiles, deleteSelectedFiles } = useFileMultiSelect();
   const files = useQuery(api.files.getFiles, { orgId });
 
   const videoFiles = files?.filter((file) => {
@@ -24,6 +25,9 @@ export default function VideosPage() {
     return file.type?.startsWith("video/") || 
       ["mp4", "mov", "avi", "mkv", "webm", "flv", "wmv", "m4v"].includes(ext || "");
   });
+  const selectableFileIds = videoFiles?.map((file) => file._id) ?? [];
+  const hasSelectableFiles = selectableFileIds.length > 0;
+  const areAllSelectableFilesSelected = hasSelectableFiles && selectableFileIds.every((id) => selectedIds.has(id));
 
   if (files === undefined) {
     return (
@@ -62,6 +66,16 @@ export default function VideosPage() {
             <div className="flex items-center gap-3">
               <FileViewToggle value={viewMode} onChange={setViewMode} />
               <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+              {hasSelectableFiles && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!isSelecting}
+                  onClick={() => (areAllSelectableFilesSelected ? clearSelectedFiles() : selectAllFiles(selectableFileIds))}
+                >
+                  {areAllSelectableFilesSelected ? "Clear" : "Select all"}
+                </Button>
+              )}
               {selectedIds.size > 0 && <DeleteSelectedButton onClick={deleteSelectedFiles} />}
             </div>
           )}

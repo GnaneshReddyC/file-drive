@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Bot, Loader2, Send } from "lucide-react";
+import { Bot, Loader2, Send, Sparkles } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
@@ -91,53 +91,59 @@ export function FileAiChatDialog({ file, open, onOpenChange }: FileAiChatDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="w-5 h-5" />
+      <DialogContent className="flex max-h-[92vh] !max-w-[calc(100%-2rem)] sm:!max-w-5xl flex-col overflow-hidden border border-border bg-background p-0 text-foreground shadow-2xl">
+        <DialogHeader className="border-b border-border bg-gradient-to-r from-primary/15 via-primary/5 to-transparent px-7 py-6">
+          <DialogTitle className="flex items-center gap-3 text-lg">
+            <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/25">
+              <Sparkles className="size-4" />
+            </span>
             Chat with file
           </DialogTitle>
-          <DialogDescription className="truncate">{file.name}</DialogDescription>
+          <DialogDescription className="truncate text-muted-foreground">{file.name}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex min-h-72 flex-1 flex-col gap-3 overflow-y-auto rounded-lg border bg-muted/30 p-3">
+        <div className="flex min-h-96 flex-1 flex-col gap-4 overflow-y-auto bg-muted/20 px-7 py-6">
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-6 ${
+              className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow ${
                 message.role === "user"
-                  ? "ml-auto bg-black text-white"
-                  : "bg-background text-foreground shadow-sm"
+                  ? "ml-auto bg-primary text-primary-foreground"
+                  : "border border-border bg-background text-foreground"
               }`}
             >
               {message.content}
             </div>
           ))}
           {isAsking && (
-            <div className="flex max-w-[85%] items-center gap-2 rounded-lg bg-background px-3 py-2 text-sm text-muted-foreground shadow-sm">
+            <div className="flex max-w-[85%] items-center gap-2 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
               Thinking...
             </div>
           )}
           {isFileLoading && (
-            <div className="flex max-w-[85%] items-center gap-2 rounded-lg bg-background px-3 py-2 text-sm text-muted-foreground shadow-sm">
+            <div className="flex max-w-[85%] items-center gap-2 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
               Preparing file...
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder={isFileLoading ? "Preparing file..." : "Ask about this file"}
-            disabled={isAsking || !isFileReady}
-          />
-          <Button type="submit" disabled={isAsking || !isFileReady || !question.trim()} className="bg-black text-white hover:bg-gray-800">
-            <Send className="w-4 h-4" />
-            <span className="sr-only">Send</span>
-          </Button>
+        <form onSubmit={handleSubmit} className="border-t border-border bg-background px-7 py-5">
+          <div className="flex items-center gap-2 rounded-2xl border border-input bg-background p-2">
+            <Bot className="ml-1 size-4 text-muted-foreground" />
+            <Input
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder={isFileLoading ? "Preparing file..." : "Ask about this file"}
+              disabled={isAsking || !isFileReady}
+              className="border-0 bg-transparent focus-visible:ring-0"
+            />
+            <Button type="submit" disabled={isAsking || !isFileReady || !question.trim()} className="rounded-xl">
+              <Send className="w-4 h-4" />
+              <span className="sr-only">Send</span>
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

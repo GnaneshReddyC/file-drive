@@ -52,7 +52,7 @@ function FilesList() {
   const orgId = organization?.id || "";
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<FileViewMode>("grid");
-  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, deleteSelectedFiles } = useFileMultiSelect();
+  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, selectAllFiles, clearSelectedFiles, deleteSelectedFiles } = useFileMultiSelect();
   
   const files = useQuery(api.files.getFiles, { orgId });
   
@@ -60,6 +60,9 @@ function FilesList() {
     if (searchQuery && !file.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+  const selectableFileIds = filteredFiles?.map((file) => file._id) ?? [];
+  const hasSelectableFiles = selectableFileIds.length > 0;
+  const areAllSelectableFilesSelected = hasSelectableFiles && selectableFileIds.every((id) => selectedIds.has(id));
   const totalFiles = files?.length ?? 0;
 
   if (files?.length === 0) {
@@ -87,6 +90,17 @@ function FilesList() {
               />
               <FileViewToggle value={viewMode} onChange={setViewMode} />
               <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+              {hasSelectableFiles && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!isSelecting}
+                  onClick={() => (areAllSelectableFilesSelected ? clearSelectedFiles() : selectAllFiles(selectableFileIds))}
+                  className="h-10 rounded-lg"
+                >
+                  {areAllSelectableFilesSelected ? "Clear" : "Select all"}
+                </Button>
+              )}
               {selectedIds.size > 0 && <DeleteSelectedButton onClick={deleteSelectedFiles} />}
               <UploadButton orgId={orgId} />
             </div>

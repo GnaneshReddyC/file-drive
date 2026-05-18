@@ -28,6 +28,14 @@ export function useFileMultiSelect() {
     });
   };
 
+  const selectAllFiles = (fileIds: Id<"files">[]) => {
+    setSelectedIds(new Set(fileIds));
+  };
+
+  const clearSelectedFiles = () => {
+    setSelectedIds(new Set());
+  };
+
   const deleteSelectedFiles = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -70,6 +78,8 @@ export function useFileMultiSelect() {
     selectedIds,
     toggleSelecting,
     toggleSelectedFile,
+    selectAllFiles,
+    clearSelectedFiles,
     deleteSelectedFiles,
     moveSelectedFiles,
   };

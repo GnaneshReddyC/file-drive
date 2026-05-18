@@ -11,6 +11,7 @@ import { FileViewMode, FileViewToggle } from "@/app/file-view-toggle";
 import { DeleteSelectedButton } from "@/app/delete-selected-button";
 import { MultiSelectToggle } from "@/app/multi-select-toggle";
 import { useFileMultiSelect } from "@/app/use-file-multi-select";
+import { Button } from "@/components/ui/button";
 
 function SkeletonCard() {
   return (
@@ -43,11 +44,14 @@ export default function FavoritesPage() {
   const { organization } = useOrganization();
   const orgId = organization?.id || "";
   const [viewMode, setViewMode] = useState<FileViewMode>("grid");
-  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, deleteSelectedFiles } = useFileMultiSelect();
+  const { isSelecting, selectedIds, toggleSelecting, toggleSelectedFile, selectAllFiles, clearSelectedFiles, deleteSelectedFiles } = useFileMultiSelect();
   const files = useQuery(api.files.getFiles, { orgId });
   const isLoading = files === undefined;
 
   const favoriteFiles = files?.filter((file) => file.isFavorite === true);
+  const selectableFileIds = favoriteFiles?.map((file) => file._id) ?? [];
+  const hasSelectableFiles = selectableFileIds.length > 0;
+  const areAllSelectableFilesSelected = hasSelectableFiles && selectableFileIds.every((id) => selectedIds.has(id));
 
   return (
     <div className="workspace-page">
@@ -82,6 +86,16 @@ export default function FavoritesPage() {
             <div className="flex items-center gap-3">
               <FileViewToggle value={viewMode} onChange={setViewMode} />
               <MultiSelectToggle enabled={isSelecting} selectedCount={selectedIds.size} onToggle={toggleSelecting} />
+              {hasSelectableFiles && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!isSelecting}
+                  onClick={() => (areAllSelectableFilesSelected ? clearSelectedFiles() : selectAllFiles(selectableFileIds))}
+                >
+                  {areAllSelectableFilesSelected ? "Clear" : "Select all"}
+                </Button>
+              )}
               {selectedIds.size > 0 && <DeleteSelectedButton onClick={deleteSelectedFiles} />}
             </div>
           </div>
